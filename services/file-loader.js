@@ -88,9 +88,36 @@ async function inlineLocalAssets(doc, htmlRepoPath, owner, repo, branch) {
       } catch (error) {
         // A single missing/unreadable asset shouldn't block the whole preview.
         console.warn(`Sprout Editor: could not load asset "${ref.resolvedPath}".`, error);
+        if (ref.kind === 'image') applyOnerrorFallback(ref.element);
       }
     })
   );
+}
+
+/**
+ * Many hand-written sites guard against a possibly-missing image with an
+ * inline fallback like:
+ *   onerror="this.src='https://cdn.example.com/fallback.jpg'; this.onerror=null;"
+ * A real browser visiting the live site runs that handler automatically, so
+ * a missing image is invisible to real visitors. Sprout's preview never
+ * executes site JS/event handlers (see canvas.js — scripts are disabled for
+ * safety), so without this, a missing local image would show a broken-image
+ * icon in the preview even though the real site handles it gracefully.
+ * Applies the same fallback ourselves so the preview matches what a real
+ * visitor would actually see. Only trusts absolute http(s) fallback URLs —
+ * a relative fallback path would need its own repo fetch, more complexity
+ * than this narrow convenience fix is worth for v1.
+ */
+function applyOnerrorFallback(imgEl) {
+  const onerror = imgEl.getAttribute('onerror');
+  if (!onerror) return;
+
+  const match = onerror.match(/this\.src\s*=\s*['"]([^'"]+)['"]/);
+  const fallbackUrl = match?.[1];
+  if (!fallbackUrl || !/^https?:\/\//i.test(fallbackUrl)) return;
+
+  imgEl.setAttribute(originalValueAttr('src'), imgEl.getAttribute('src'));
+  imgEl.setAttribute('src', fallbackUrl);
 }
 
 async function inlineCssAssets(cssText, cssRepoPath, owner, repo, branch) {
