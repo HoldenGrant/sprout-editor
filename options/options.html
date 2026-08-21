@@ -54,7 +54,12 @@
     button.primary { background: var(--sprout-green); border-color: var(--sprout-green-dark); color: #fff; }
     button.big { padding: 10px 20px; font-size: 14px; }
     button:disabled { opacity: 0.5; cursor: default; }
-    #connectStatus, #statusMessage { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 8px; display: none; }
+    /* .status-box is the shared base (hidden); a state class (.success/.error/.info)
+       makes it visible. Deliberately class-only, never mixed with #id selectors —
+       an #id rule would always out-specificity a .class rule and silently win
+       regardless of source order, which is exactly what hid this box before. */
+    #statusMessage { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 8px; display: none; }
+    .status-box { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 8px; display: none; }
     .status-box.success, #statusMessage.success { display: block; background: #eaf7ec; color: #1a7431; border: 1px solid #c9ecd0; }
     .status-box.error, #statusMessage.error { display: block; background: #fff1f0; color: #d1242f; border: 1px solid #ffd7d5; }
     .status-box.info { display: block; background: #eef4ff; color: #1d4ed8; border: 1px solid #c7d9fb; }
@@ -101,7 +106,7 @@
     <p class="subtitle" style="margin-bottom:12px;">Recommended — sign in and choose which repositories to allow, no copy-pasting required.</p>
     <button id="connectBtn" class="primary big">Connect with GitHub</button>
 
-    <div id="connectStatus"></div>
+    <div id="connectStatus" class="status-box"></div>
 
     <details id="advancedSection">
       <summary>Advanced: use a Personal Access Token instead</summary>

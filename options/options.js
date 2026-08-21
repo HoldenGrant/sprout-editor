@@ -123,7 +123,7 @@ function showConnectStatus(message, type, code) {
 }
 
 function hideConnectStatus() {
-  els.connectStatus.className = '';
+  els.connectStatus.className = 'status-box'; // base class only = hidden (no state class)
   els.connectStatus.innerHTML = '';
 }
 
