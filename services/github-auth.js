@@ -178,7 +178,9 @@ async function pollForAccessToken({ deviceCode, interval, expiresIn, onTick }) {
 /**
  * Full device-flow sign-in, driven from the Options page.
  * @param {{ onCodeReady: (info: {userCode: string, verificationUri: string}) => void, onPolling?: () => void }} callbacks
- * @returns {{ login: string }} the authenticated GitHub username
+ * @returns {{ login: string, hasInstallation: boolean }} hasInstallation is
+ *   false when the user authorized the app but hasn't installed it on any
+ *   repos yet — see hasAnyInstallation() below for why that's a distinct step.
  */
 export async function signInWithDeviceFlow({ onCodeReady, onPolling } = {}) {
   if (!isDeviceFlowConfigured()) {
@@ -193,7 +195,33 @@ export async function signInWithDeviceFlow({ onCodeReady, onPolling } = {}) {
   const accessToken = await pollForAccessToken({ deviceCode, interval, expiresIn, onTick: onPolling });
   await setToken(accessToken);
   const login = await validateToken(accessToken);
-  return { login };
+  const hasInstallation = await hasAnyInstallation(accessToken);
+  return { login, hasInstallation };
+}
+
+/**
+ * Authorizing a GitHub App (what device flow does) and INSTALLING it on
+ * specific repos are two separate consent steps in GitHub's model — a user
+ * can complete device flow successfully and still have a token with zero
+ * repo access until they also visit the app's install page. GET
+ * /user/installations lists installations the token can see; an empty list
+ * means "authorized but not installed anywhere yet".
+ */
+async function hasAnyInstallation(token) {
+  try {
+    const response = await fetch(`${GITHUB_API_BASE}/user/installations`, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) return true; // don't block sign-in on an unexpected check failure
+    const data = await response.json();
+    return (data.total_count ?? 0) > 0;
+  } catch {
+    return true; // fail open — worst case, the user hits the normal 404-with-hint later
+  }
 }
 
 function sleep(ms) {

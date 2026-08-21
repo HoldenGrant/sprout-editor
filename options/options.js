@@ -13,6 +13,7 @@ import {
   signInWithDeviceFlow,
   isDeviceFlowConfigured,
 } from '../services/github-auth.js';
+import { githubAppInstallUrl } from '../shared/constants.js';
 
 const els = {
   connectedBanner: document.getElementById('connectedBanner'),
@@ -83,7 +84,7 @@ async function handleConnectClick() {
   hideConnectStatus();
 
   try {
-    const { login } = await signInWithDeviceFlow({
+    const { login, hasInstallation } = await signInWithDeviceFlow({
       onCodeReady: ({ userCode, verificationUri }) => {
         showConnectStatus(
           `1. Go to ${verificationUri}\n2. Enter this code:`,
@@ -97,14 +98,43 @@ async function handleConnectClick() {
     });
 
     await refreshConnectedState();
-    hideConnectStatus();
-    showStatus(`✓ Connected as @${login}.`, 'success');
+
+    if (hasInstallation) {
+      hideConnectStatus();
+      showStatus(`✓ Connected as @${login}.`, 'success');
+    } else {
+      // Authorizing the app and installing it on repos are separate GitHub
+      // steps — signed in, but there's nothing to actually read/write yet.
+      showInstallPrompt(login);
+    }
   } catch (error) {
     showConnectStatus(error.message, 'error');
   } finally {
     els.connectBtn.disabled = false;
     els.connectBtn.textContent = 'Connect with GitHub';
   }
+}
+
+function showInstallPrompt(login) {
+  els.connectStatus.className = 'status-box info';
+  els.connectStatus.innerHTML = '';
+
+  const text = document.createElement('div');
+  text.textContent = `✓ Signed in as @${login} — one more step: choose which repositories Sprout Editor can access.`;
+  els.connectStatus.appendChild(text);
+
+  const link = document.createElement('a');
+  link.href = githubAppInstallUrl();
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = 'Grant repository access →';
+  // Stylesheet only defines button.primary (a tag-qualified selector), which
+  // wouldn't match this <a> — set the "primary button" look inline instead.
+  link.style.cssText =
+    'display:inline-block; margin-top:10px; padding:7px 14px; border-radius:8px; ' +
+    'text-decoration:none; font-size:13px; font-weight:500; ' +
+    'background:#2ea043; border:1px solid #1a7431; color:#fff;';
+  els.connectStatus.appendChild(link);
 }
 
 function showConnectStatus(message, type, code) {

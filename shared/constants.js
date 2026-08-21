@@ -29,6 +29,17 @@ export const GITHUB_DEVICE_TOKEN_URL = 'https://github.com/login/oauth/access_to
 // their own repos — then paste its Client ID here. See README.md.
 export const GITHUB_APP_CLIENT_ID = 'Iv23liH6tOU1eqyGUcG7';
 
+// The GitHub App's slug (the URL-friendly name shown at github.com/apps/<slug>).
+// Authorizing the app (device flow) and INSTALLING it on specific repos are two
+// separate consent steps — a user can complete device flow successfully and
+// still have zero repo access until they also visit this install URL. See
+// github-auth.js hasAnyInstallation() / signInWithDeviceFlow().
+export const GITHUB_APP_SLUG = 'sprout-editor';
+
+export function githubAppInstallUrl() {
+  return `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`;
+}
+
 // runtime.sendMessage type used by the content script to ask the background
 // worker to open the editor. NOTE: content scripts are classic (non-module)
 // scripts, so they cannot `import` this file — content/github-toolbar.js
