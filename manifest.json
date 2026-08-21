@@ -35,6 +35,7 @@
   },
   "permissions": ["storage"],
   "host_permissions": [
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "https://github.com/*"
   ]
 }

@@ -4,19 +4,32 @@
 // the *how* of getting a token can change without touching anything that
 // calls the GitHub API.
 //
-// v1 strategy: a user-supplied Personal Access Token (fine-grained "Contents:
-// Read and write" scope on the target repo), entered on the Options page and
-// stored only in chrome.storage.local. It never appears in source code.
+// Two ways to connect, both ending in the same place — a token in
+// chrome.storage.local, read by getAuthHeaders()/hasToken():
 //
-// To add OAuth later (device flow or a GitHub App + small token-exchange
-// backend, since a browser extension cannot keep a client secret), implement
-// a new strategy object with the same {getToken, setToken, clearToken} shape
-// and swap `activeStrategy` below — services/github-api.js and every UI
-// caller only ever use getAuthHeaders()/hasToken(), so nothing else changes.
+//   1. RECOMMENDED: GitHub OAuth Device Flow (signInWithDeviceFlow below).
+//      No client secret is involved — that's the whole point of device flow,
+//      it's designed for apps (like this one) that can't protect one — so it
+//      runs entirely client-side, no backend server required. The user just
+//      clicks "Connect with GitHub", gets a short code, enters it at
+//      github.com/login/device, and picks which repos to grant access to.
+//   2. FALLBACK: a user-pasted Personal Access Token (fine-grained "Contents:
+//      Read and write"), for advanced users or before GITHUB_APP_CLIENT_ID
+//      (shared/constants.js) is configured.
+//
+// Both paths write to the exact same storage key via setToken(), so
+// services/github-api.js never needs to know or care which one was used.
 
-import { STORAGE_KEYS, GITHUB_API_BASE, GITHUB_API_VERSION } from '../shared/constants.js';
+import {
+  STORAGE_KEYS,
+  GITHUB_API_BASE,
+  GITHUB_API_VERSION,
+  GITHUB_DEVICE_CODE_URL,
+  GITHUB_DEVICE_TOKEN_URL,
+  GITHUB_APP_CLIENT_ID,
+} from '../shared/constants.js';
 
-const personalAccessTokenStrategy = {
+const tokenStorageStrategy = {
   async getToken() {
     const result = await chrome.storage.local.get(STORAGE_KEYS.GITHUB_TOKEN);
     return result[STORAGE_KEYS.GITHUB_TOKEN] || null;
@@ -31,28 +44,25 @@ const personalAccessTokenStrategy = {
   },
 };
 
-// Swap this to change auth strategy (see comment above).
-const activeStrategy = personalAccessTokenStrategy;
-
 export async function getToken() {
-  return activeStrategy.getToken();
+  return tokenStorageStrategy.getToken();
 }
 
 export async function setToken(token) {
-  return activeStrategy.setToken(token);
+  return tokenStorageStrategy.setToken(token);
 }
 
 export async function clearToken() {
-  return activeStrategy.clearToken();
+  return tokenStorageStrategy.clearToken();
 }
 
 export async function hasToken() {
-  return Boolean(await activeStrategy.getToken());
+  return Boolean(await tokenStorageStrategy.getToken());
 }
 
 /** Build fetch() headers for an authenticated GitHub API request. */
 export async function getAuthHeaders() {
-  const token = await activeStrategy.getToken();
+  const token = await tokenStorageStrategy.getToken();
   const headers = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': GITHUB_API_VERSION,
@@ -66,8 +76,8 @@ export async function getAuthHeaders() {
 /**
  * Verify a token actually works by calling GET /user. Returns the
  * authenticated login on success, throws a descriptive error otherwise.
- * Used by the Options page's "Validate" button — does not depend on the
- * stored token, so a token can be checked before saving it.
+ * Does not depend on the stored token, so a token can be checked before
+ * saving it (used by both the manual-PAT and device-flow paths).
  */
 export async function validateToken(token) {
   const response = await fetch(`${GITHUB_API_BASE}/user`, {
@@ -87,4 +97,105 @@ export async function validateToken(token) {
 
   const user = await response.json();
   return user.login;
+}
+
+// ---------- OAuth Device Flow ----------
+// Reference: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow
+
+export function isDeviceFlowConfigured() {
+  return Boolean(GITHUB_APP_CLIENT_ID) && !GITHUB_APP_CLIENT_ID.startsWith('REPLACE_WITH');
+}
+
+/**
+ * Step 1: ask GitHub for a device code + short user-facing code.
+ * @returns {{ deviceCode: string, userCode: string, verificationUri: string, expiresIn: number, interval: number }}
+ */
+async function requestDeviceCode() {
+  const response = await fetch(GITHUB_DEVICE_CODE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+    body: new URLSearchParams({ client_id: GITHUB_APP_CLIENT_ID }),
+  });
+  if (!response.ok) throw new Error('Could not start GitHub sign-in. Check your connection and try again.');
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error_description || 'Could not start GitHub sign-in.');
+
+  return {
+    deviceCode: data.device_code,
+    userCode: data.user_code,
+    verificationUri: data.verification_uri,
+    expiresIn: data.expires_in,
+    interval: data.interval,
+  };
+}
+
+/**
+ * Step 2: poll GitHub until the user finishes authorizing at verificationUri
+ * (or the code expires / they deny it). Respects the server-given interval,
+ * including "slow_down" backoff, per the device flow spec.
+ * @returns {string} access_token
+ */
+async function pollForAccessToken({ deviceCode, interval, expiresIn, onTick }) {
+  const deadline = Date.now() + expiresIn * 1000;
+  let waitSeconds = interval;
+
+  while (Date.now() < deadline) {
+    await sleep(waitSeconds * 1000);
+    onTick?.();
+
+    const response = await fetch(GITHUB_DEVICE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams({
+        client_id: GITHUB_APP_CLIENT_ID,
+        device_code: deviceCode,
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+      }),
+    });
+    const data = await response.json();
+
+    if (data.access_token) return data.access_token;
+
+    switch (data.error) {
+      case 'authorization_pending':
+        continue; // user hasn't entered the code yet — keep polling
+      case 'slow_down':
+        waitSeconds += 5; // GitHub asking us to back off, per spec
+        continue;
+      case 'expired_token':
+        throw new Error('That sign-in code expired. Click "Connect with GitHub" to get a new one.');
+      case 'access_denied':
+        throw new Error('Sign-in was cancelled.');
+      default:
+        throw new Error(data.error_description || 'GitHub sign-in failed.');
+    }
+  }
+
+  throw new Error('That sign-in code expired. Click "Connect with GitHub" to get a new one.');
+}
+
+/**
+ * Full device-flow sign-in, driven from the Options page.
+ * @param {{ onCodeReady: (info: {userCode: string, verificationUri: string}) => void, onPolling?: () => void }} callbacks
+ * @returns {{ login: string }} the authenticated GitHub username
+ */
+export async function signInWithDeviceFlow({ onCodeReady, onPolling } = {}) {
+  if (!isDeviceFlowConfigured()) {
+    throw new Error(
+      'GitHub sign-in isn’t configured yet (missing GITHUB_APP_CLIENT_ID in shared/constants.js). Use a Personal Access Token below instead.'
+    );
+  }
+
+  const { deviceCode, userCode, verificationUri, expiresIn, interval } = await requestDeviceCode();
+  onCodeReady?.({ userCode, verificationUri });
+
+  const accessToken = await pollForAccessToken({ deviceCode, interval, expiresIn, onTick: onPolling });
+  await setToken(accessToken);
+  const login = await validateToken(accessToken);
+  return { login };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -14,6 +14,21 @@ export const STORAGE_KEYS = {
 export const GITHUB_API_BASE = 'https://api.github.com';
 export const GITHUB_API_VERSION = '2022-11-28';
 
+// GitHub OAuth Device Flow endpoints (github.com, NOT api.github.com) — see
+// services/github-auth.js. Device flow needs no client secret (it's designed
+// for apps, like this one, that can't protect one), so it can run entirely
+// from the extension with no backend server.
+export const GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code';
+export const GITHUB_DEVICE_TOKEN_URL = 'https://github.com/login/oauth/access_token';
+
+// The GitHub App's public Client ID (safe to embed — it identifies the app,
+// it isn't a secret; device flow never uses a client secret at all).
+// Create the app at https://github.com/settings/apps/new — repository
+// permission "Contents: Read and write", "Enable Device Flow" checked under
+// the app's settings, installable on "Any account" so anyone can connect
+// their own repos — then paste its Client ID here. See README.md.
+export const GITHUB_APP_CLIENT_ID = 'REPLACE_WITH_YOUR_GITHUB_APP_CLIENT_ID';
+
 // runtime.sendMessage type used by the content script to ask the background
 // worker to open the editor. NOTE: content scripts are classic (non-module)
 // scripts, so they cannot `import` this file — content/github-toolbar.js

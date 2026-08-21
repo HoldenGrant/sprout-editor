@@ -18,8 +18,9 @@ Visual canvas — click any text, button, or image to edit it
 "Save to GitHub" → commits the updated file back to the same branch
 ```
 
-See `manifest.json` for the extension's permission footprint (just `storage` +
-`https://api.github.com/*` — no broad host access is requested).
+See `manifest.json` for the extension's permission footprint: `storage`, plus host access
+to `api.github.com` (Contents API) and `github.com` (OAuth device flow endpoints only —
+`/login/device/code` and `/login/oauth/access_token`).
 
 ## Project structure
 
@@ -56,15 +57,30 @@ sprout-editor/
 2. **Connect a GitHub account**
    - Right-click the Sprout Editor icon → **Options** (or visit it via the prompt
      Sprout Editor shows the first time you try to save)
-   - Create a GitHub **fine-grained Personal Access Token**
-     (Settings → Developer settings → Fine-grained tokens) scoped to the repo(s)
-     you want to edit, with **Contents: Read and write** permission
-   - Paste it in, click **Validate** to confirm, then **Save Token**
+   - Click **Connect with GitHub** — you'll get a short code and a link to
+     `github.com/login/device`; enter the code there, pick which repos to allow, and
+     you're done. No copy-pasting a token required.
+   - *(Advanced fallback, or if device flow isn't configured yet — see below)*: expand
+     **"Advanced: use a Personal Access Token instead"**, create a GitHub
+     **fine-grained Personal Access Token** (Settings → Developer settings →
+     Fine-grained tokens) scoped to the repo(s) you want to edit with **Contents: Read
+     and write** permission, paste it in, **Validate**, then **Save Token**.
 
-   The token is stored only in `chrome.storage.local` on your machine — it is never
-   written into source code or sent anywhere except `api.github.com`. See
-   `services/github-auth.js` for the auth architecture (structured so a future
-   OAuth flow can replace the PAT strategy without touching any calling code).
+   Either way, the resulting token is stored only in `chrome.storage.local` on your
+   machine — never written into source code or sent anywhere except `github.com`/
+   `api.github.com`. See `services/github-auth.js` for the auth architecture.
+
+   **One-time setup for device flow (only needed once, by whoever ships this extension —
+   not by each end user):** create a GitHub App at
+   [github.com/settings/apps/new](https://github.com/settings/apps/new) with:
+   - Repository permissions → **Contents: Read and write**
+   - **Enable Device Flow** checked (in the app's settings, after creation)
+   - "Where can this app be installed?" → **Any account** (so anyone can connect
+     their own repos — "Only on this account" would block everyone else)
+
+   Then copy the app's **Client ID** into `GITHUB_APP_CLIENT_ID` in
+   `shared/constants.js`. Until that's set, the Options page automatically falls back
+   to the Personal Access Token flow with a note explaining why.
 
 3. **Try it**
    - Visit `https://github.com/HoldenGrant/sprout/blob/main/index.html`

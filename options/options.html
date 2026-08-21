@@ -22,13 +22,14 @@
     }
     .card {
       max-width: 520px;
-      margin: 0 auto;
+      margin: 0 auto 20px;
       background: #fff;
       border: 1px solid var(--sprout-border);
       border-radius: 12px;
       padding: 28px;
     }
     h1 { font-size: 18px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+    h2 { font-size: 14px; margin: 0 0 4px; }
     p.subtitle { color: var(--sprout-text-muted); font-size: 13px; margin: 0 0 22px; }
     ol { font-size: 13px; color: #374151; line-height: 1.7; padding-left: 20px; }
     label { display: block; font-size: 12px; font-weight: 600; margin: 18px 0 6px; }
@@ -40,7 +41,7 @@
       border: 1px solid var(--sprout-border);
       border-radius: 8px;
     }
-    .actions { display: flex; gap: 8px; margin-top: 16px; }
+    .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
     button {
       padding: 7px 14px;
       font-size: 13px;
@@ -51,11 +52,39 @@
       cursor: pointer;
     }
     button.primary { background: var(--sprout-green); border-color: var(--sprout-green-dark); color: #fff; }
+    button.big { padding: 10px 20px; font-size: 14px; }
     button:disabled { opacity: 0.5; cursor: default; }
-    #statusMessage { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 8px; display: none; }
-    #statusMessage.success { display: block; background: #eaf7ec; color: #1a7431; border: 1px solid #c9ecd0; }
-    #statusMessage.error { display: block; background: #fff1f0; color: #d1242f; border: 1px solid #ffd7d5; }
+    #connectStatus, #statusMessage { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 8px; display: none; }
+    .status-box.success, #statusMessage.success { display: block; background: #eaf7ec; color: #1a7431; border: 1px solid #c9ecd0; }
+    .status-box.error, #statusMessage.error { display: block; background: #fff1f0; color: #d1242f; border: 1px solid #ffd7d5; }
+    .status-box.info { display: block; background: #eef4ff; color: #1d4ed8; border: 1px solid #c7d9fb; }
     .token-state { font-size: 12px; color: var(--sprout-text-muted); margin-top: 6px; }
+    .device-code {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-align: center;
+      padding: 12px;
+      margin: 10px 0;
+      background: var(--sprout-bg);
+      border: 1px dashed var(--sprout-border);
+      border-radius: 8px;
+    }
+    details { margin-top: 4px; }
+    summary { font-size: 13px; font-weight: 600; cursor: pointer; color: var(--sprout-text-muted); padding: 4px 0; }
+    .connected-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #eaf7ec;
+      border: 1px solid #c9ecd0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #1a7431;
+      margin-bottom: 18px;
+    }
   </style>
 </head>
 <body>
@@ -63,22 +92,35 @@
     <h1>🌱 Sprout Editor — Settings</h1>
     <p class="subtitle">Connect a GitHub account so Sprout Editor can save your changes as commits.</p>
 
-    <ol>
-      <li>Go to <strong>GitHub → Settings → Developer settings → Fine-grained tokens</strong>.</li>
-      <li>Create a new token scoped to the repositories you want to edit.</li>
-      <li>Grant it <strong>Contents: Read and write</strong> permission.</li>
-      <li>Paste the token below.</li>
-    </ol>
-
-    <label for="tokenInput">Personal Access Token</label>
-    <input id="tokenInput" type="password" placeholder="github_pat_…" autocomplete="off" />
-    <div id="tokenState" class="token-state"></div>
-
-    <div class="actions">
-      <button id="validateBtn">Validate</button>
-      <button id="saveBtn" class="primary">Save Token</button>
-      <button id="clearBtn">Remove Token</button>
+    <div id="connectedBanner" class="connected-banner" style="display:none;">
+      <span id="connectedBannerText"></span>
+      <button id="disconnectBtn">Disconnect</button>
     </div>
+
+    <h2>Connect with GitHub</h2>
+    <p class="subtitle" style="margin-bottom:12px;">Recommended — sign in and choose which repositories to allow, no copy-pasting required.</p>
+    <button id="connectBtn" class="primary big">Connect with GitHub</button>
+
+    <div id="connectStatus"></div>
+
+    <details id="advancedSection">
+      <summary>Advanced: use a Personal Access Token instead</summary>
+      <ol>
+        <li>Go to <strong>GitHub → Settings → Developer settings → Fine-grained tokens</strong>.</li>
+        <li>Create a new token scoped to the repositories you want to edit.</li>
+        <li>Grant it <strong>Contents: Read and write</strong> permission.</li>
+        <li>Paste the token below.</li>
+      </ol>
+
+      <label for="tokenInput">Personal Access Token</label>
+      <input id="tokenInput" type="password" placeholder="github_pat_…" autocomplete="off" />
+      <div id="tokenState" class="token-state"></div>
+
+      <div class="actions">
+        <button id="validateBtn">Validate</button>
+        <button id="saveBtn" class="primary">Save Token</button>
+      </div>
+    </details>
 
     <div id="statusMessage"></div>
   </div>
