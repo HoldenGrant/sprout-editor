@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sprout Editor</title>
+  <link rel="icon" href="../assets/icons/icon48.png" />
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body>
+  <div id="app" class="sprout-app">
+
+    <!-- Top toolbar -->
+    <header class="sprout-toolbar">
+      <div class="sprout-toolbar__left">
+        <span class="sprout-brand">🌱 Sprout Editor</span>
+        <span class="sprout-file-name" id="fileNameLabel">No file loaded</span>
+      </div>
+      <div class="sprout-toolbar__right">
+        <button id="undoBtn" class="sprout-btn sprout-btn--icon" title="Undo (Ctrl/Cmd+Z)" disabled>
+          ↺ Undo
+        </button>
+        <button id="redoBtn" class="sprout-btn sprout-btn--icon" title="Redo (Ctrl/Cmd+Shift+Z)" disabled>
+          ↻ Redo
+        </button>
+        <button id="previewBtn" class="sprout-btn" title="Toggle editor outlines">
+          👁 Preview
+        </button>
+        <button id="saveBtn" class="sprout-btn sprout-btn--primary" disabled>
+          Save to GitHub
+        </button>
+      </div>
+    </header>
+
+    <div class="sprout-body">
+
+      <!-- Left sidebar -->
+      <aside class="sprout-sidebar" id="sidebar">
+        <h2 class="sprout-sidebar__title">Elements</h2>
+        <ul class="sprout-element-list" id="elementList">
+          <li class="sprout-element-item" data-category="hero">🏔️ Hero</li>
+          <li class="sprout-element-item" data-category="nav">🧭 Navigation</li>
+          <li class="sprout-element-item" data-category="section">📄 Sections</li>
+          <li class="sprout-element-item" data-category="image">🖼️ Images</li>
+          <li class="sprout-element-item" data-category="button">🔘 Buttons</li>
+          <li class="sprout-element-item" data-category="footer">🦶 Footer</li>
+        </ul>
+        <p class="sprout-sidebar__hint">Click an element type to jump to it in the preview.</p>
+      </aside>
+
+      <!-- Main canvas -->
+      <main class="sprout-canvas-wrap">
+        <div id="statusOverlay" class="sprout-status-overlay">
+          <p id="statusMessage">Loading file from GitHub…</p>
+        </div>
+        <iframe
+          id="previewFrame"
+          class="sprout-preview-frame"
+          title="Website preview"
+          sandbox="allow-same-origin"
+        ></iframe>
+      </main>
+
+      <!-- Right inspector -->
+      <aside class="sprout-inspector" id="inspector">
+        <h2 class="sprout-inspector__title">Inspector</h2>
+        <div id="inspectorBody" class="sprout-inspector__body">
+          <p class="sprout-inspector__empty">Select an element in the preview to edit it.</p>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- Save modal -->
+  <div id="saveModal" class="sprout-modal-backdrop sprout-hidden">
+    <div class="sprout-modal">
+      <h2>Save changes</h2>
+      <div class="sprout-modal__row">
+        <label>File</label>
+        <div id="saveModalFileName" class="sprout-modal__filename">index.html</div>
+      </div>
+      <div class="sprout-modal__row">
+        <label for="commitMessageInput">Commit message</label>
+        <input id="commitMessageInput" type="text" />
+      </div>
+      <div id="saveModalError" class="sprout-modal__error sprout-hidden"></div>
+      <div class="sprout-modal__actions">
+        <button id="saveModalCancel" class="sprout-btn">Cancel</button>
+        <button id="saveModalConfirm" class="sprout-btn sprout-btn--primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toastContainer" class="sprout-toast-container"></div>
+
+  <script type="module" src="editor.js"></script>
+</body>
+</html>

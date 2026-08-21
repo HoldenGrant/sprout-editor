@@ -1,0 +1,86 @@
+// Shared constants used across content scripts, background, editor, and services.
+// Keeping these in one place avoids magic strings scattered across modules.
+
+// chrome.storage keys
+export const STORAGE_KEYS = {
+  GITHUB_TOKEN: 'sprout_github_token',
+  // Prefix for per-session handoff records written by the background worker and
+  // read once by the editor page. Full key is `${SESSION_PREFIX}${sessionId}`.
+  SESSION_PREFIX: 'sprout_session_',
+};
+
+// GitHub API base URLs. Only the REST Contents API is used (no GraphQL) so the
+// same auth header logic covers reads, writes, and asset fetches uniformly.
+export const GITHUB_API_BASE = 'https://api.github.com';
+export const GITHUB_API_VERSION = '2022-11-28';
+
+// runtime.sendMessage type used by the content script to ask the background
+// worker to open the editor. NOTE: content scripts are classic (non-module)
+// scripts, so they cannot `import` this file — content/github-toolbar.js
+// hardcodes the same literal string. Keep the two in sync if this changes.
+export const MESSAGE_TYPES = {
+  OPEN_EDITOR: 'SPROUT_OPEN_EDITOR',
+};
+
+// Tags eligible for MODE 1 "smart detection" text editing.
+export const SMART_TEXT_TAGS = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'SPAN', 'LI'];
+
+// Tags eligible for MODE 1 "smart detection" button/link editing.
+export const SMART_BUTTON_TAGS = ['A', 'BUTTON'];
+
+// Tags eligible for MODE 1 "smart detection" image editing.
+export const SMART_IMAGE_TAGS = ['IMG'];
+
+// MODE 2 explicit opt-in attribute. Value determines the editor kind.
+export const SPROUT_ATTR = 'data-sprout';
+export const SPROUT_KINDS = {
+  TEXT: 'text',
+  IMAGE: 'image',
+  BUTTON: 'button',
+};
+
+// Internal attribute the editor stamps on every editable element so it can be
+// referenced reliably by history/inspector/save logic. Stripped before saving.
+export const SPROUT_UID_ATTR = 'data-sprout-uid';
+
+// When file-loader.js rewrites an attribute's value for preview purposes
+// (e.g. an <img src> relative path becomes a data: URI so it renders in the
+// iframe), it stashes the pre-rewrite value under this marker so the
+// Inspector can display the real path and editor.js can use it as the
+// correct undo/save baseline instead of the rewritten preview value.
+export function originalValueAttr(attrName) {
+  return `data-sprout-original-${attrName}`;
+}
+
+// Editor-only DOM markers that must never be written back to GitHub.
+export const EDITOR_ONLY_STYLE_ID = 'sprout-editor-injected-styles';
+export const EDITOR_HOVER_CLASS = 'sprout-hover-outline';
+export const EDITOR_SELECTED_CLASS = 'sprout-selected-outline';
+
+// Default commit message used when the user doesn't customize it.
+export function defaultCommitMessage(fileName) {
+  return `Update ${fileName} with Sprout Editor`;
+}
+
+// Extension -> MIME type map, used to build data: URIs for binary preview assets
+// (images/fonts) fetched from the Contents API as base64.
+export const EXT_MIME_MAP = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+  ico: 'image/x-icon',
+  woff: 'font/woff',
+  woff2: 'font/woff2',
+  ttf: 'font/ttf',
+  otf: 'font/otf',
+  css: 'text/css',
+  js: 'text/javascript',
+};
+
+export function mimeTypeForPath(path) {
+  const ext = path.split('.').pop().toLowerCase();
+  return EXT_MIME_MAP[ext] || 'application/octet-stream';
+}

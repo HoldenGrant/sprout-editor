@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Sprout Editor",
+  "short_name": "Sprout",
+  "version": "0.1.0",
+  "description": "Visually edit GitHub HTML files without touching code. 🌱",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content/github-detector.js", "content/github-toolbar.js"],
+      "css": ["content/github-toolbar.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Sprout Editor",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.github.com/*"
+  ]
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sprout Editor — Settings</title>
+  <link rel="icon" href="../assets/icons/icon48.png" />
+  <style>
+    :root {
+      --sprout-green: #2ea043;
+      --sprout-green-dark: #1a7431;
+      --sprout-border: #e2e5e9;
+      --sprout-bg: #f6f8fa;
+      --sprout-text-muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--sprout-bg);
+      color: #1f2328;
+    }
+    .card {
+      max-width: 520px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--sprout-border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+    h1 { font-size: 18px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+    p.subtitle { color: var(--sprout-text-muted); font-size: 13px; margin: 0 0 22px; }
+    ol { font-size: 13px; color: #374151; line-height: 1.7; padding-left: 20px; }
+    label { display: block; font-size: 12px; font-weight: 600; margin: 18px 0 6px; }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      border: 1px solid var(--sprout-border);
+      border-radius: 8px;
+    }
+    .actions { display: flex; gap: 8px; margin-top: 16px; }
+    button {
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px;
+      border: 1px solid var(--sprout-border);
+      background: #fff;
+      cursor: pointer;
+    }
+    button.primary { background: var(--sprout-green); border-color: var(--sprout-green-dark); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #statusMessage { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 8px; display: none; }
+    #statusMessage.success { display: block; background: #eaf7ec; color: #1a7431; border: 1px solid #c9ecd0; }
+    #statusMessage.error { display: block; background: #fff1f0; color: #d1242f; border: 1px solid #ffd7d5; }
+    .token-state { font-size: 12px; color: var(--sprout-text-muted); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🌱 Sprout Editor — Settings</h1>
+    <p class="subtitle">Connect a GitHub account so Sprout Editor can save your changes as commits.</p>
+
+    <ol>
+      <li>Go to <strong>GitHub → Settings → Developer settings → Fine-grained tokens</strong>.</li>
+      <li>Create a new token scoped to the repositories you want to edit.</li>
+      <li>Grant it <strong>Contents: Read and write</strong> permission.</li>
+      <li>Paste the token below.</li>
+    </ol>
+
+    <label for="tokenInput">Personal Access Token</label>
+    <input id="tokenInput" type="password" placeholder="github_pat_…" autocomplete="off" />
+    <div id="tokenState" class="token-state"></div>
+
+    <div class="actions">
+      <button id="validateBtn">Validate</button>
+      <button id="saveBtn" class="primary">Save Token</button>
+      <button id="clearBtn">Remove Token</button>
+    </div>
+
+    <div id="statusMessage"></div>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

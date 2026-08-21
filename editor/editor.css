@@ -1,0 +1,415 @@
+/* editor/editor.css — Sprout Editor shell styles.
+ * This file styles the EDITOR CHROME ONLY (toolbar/sidebar/inspector/modals).
+ * It never touches the previewed website — that lives isolated inside the
+ * sandboxed iframe (see canvas.js for the editor-only outline styles that
+ * get injected *into* the iframe and stripped before saving).
+ */
+
+:root {
+  --sprout-green: #2ea043;
+  --sprout-green-dark: #1a7431;
+  --sprout-bg: #f6f8fa;
+  --sprout-panel-bg: #ffffff;
+  --sprout-border: #e2e5e9;
+  --sprout-text: #1f2328;
+  --sprout-text-muted: #6b7280;
+  --sprout-danger: #d1242f;
+  --sprout-danger-bg: #fff1f0;
+  --sprout-radius: 10px;
+  --sprout-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--sprout-text);
+  background: var(--sprout-bg);
+}
+
+.sprout-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------- Toolbar ---------- */
+
+.sprout-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--sprout-panel-bg);
+  border-bottom: 1px solid var(--sprout-border);
+  flex-shrink: 0;
+}
+
+.sprout-toolbar__left,
+.sprout-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sprout-brand {
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.sprout-file-name {
+  font-size: 13px;
+  color: var(--sprout-text-muted);
+  padding: 3px 10px;
+  background: var(--sprout-bg);
+  border: 1px solid var(--sprout-border);
+  border-radius: 6px;
+}
+
+.sprout-file-name.is-dirty::after {
+  content: " ●";
+  color: var(--sprout-green);
+}
+
+.sprout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sprout-text);
+  background: var(--sprout-panel-bg);
+  border: 1px solid var(--sprout-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sprout-btn:hover:not(:disabled) {
+  background: var(--sprout-bg);
+  border-color: #d0d5db;
+}
+
+.sprout-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sprout-btn--primary {
+  color: #fff;
+  background: var(--sprout-green);
+  border-color: var(--sprout-green-dark);
+}
+
+.sprout-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.sprout-btn.is-active {
+  background: #eaf7ec;
+  border-color: var(--sprout-green);
+  color: var(--sprout-green-dark);
+}
+
+/* ---------- Body layout ---------- */
+
+.sprout-body {
+  display: grid;
+  grid-template-columns: 220px 1fr 300px;
+  flex: 1;
+  min-height: 0;
+}
+
+.sprout-sidebar,
+.sprout-inspector {
+  background: var(--sprout-panel-bg);
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.sprout-sidebar { border-right: 1px solid var(--sprout-border); }
+.sprout-inspector { border-left: 1px solid var(--sprout-border); }
+
+.sprout-sidebar__title,
+.sprout-inspector__title {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sprout-text-muted);
+}
+
+.sprout-element-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sprout-element-item {
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sprout-element-item:hover {
+  background: var(--sprout-bg);
+}
+
+.sprout-sidebar__hint {
+  font-size: 12px;
+  color: var(--sprout-text-muted);
+  line-height: 1.5;
+}
+
+/* ---------- Canvas ---------- */
+
+.sprout-canvas-wrap {
+  position: relative;
+  background: #eef0f3;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  min-width: 0;
+}
+
+.sprout-preview-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+}
+
+.sprout-status-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(246, 248, 250, 0.92);
+  z-index: 5;
+  font-size: 14px;
+  color: var(--sprout-text-muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.sprout-status-overlay.sprout-hidden { display: none; }
+
+.sprout-status-overlay.is-error #statusMessage {
+  color: var(--sprout-danger);
+  white-space: pre-wrap;
+  max-width: 480px;
+}
+
+/* ---------- Inspector form controls ---------- */
+
+.sprout-inspector__empty {
+  font-size: 13px;
+  color: var(--sprout-text-muted);
+}
+
+.sprout-field {
+  margin-bottom: 14px;
+}
+
+.sprout-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: var(--sprout-text);
+}
+
+.sprout-field input[type="text"],
+.sprout-field input[type="number"],
+.sprout-field input[type="url"],
+.sprout-field textarea {
+  width: 100%;
+  padding: 6px 9px;
+  font-size: 13px;
+  border: 1px solid var(--sprout-border);
+  border-radius: 7px;
+  font-family: inherit;
+  background: var(--sprout-panel-bg);
+  color: var(--sprout-text);
+}
+
+.sprout-field textarea {
+  resize: vertical;
+  min-height: 56px;
+}
+
+.sprout-field input[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--sprout-border);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.sprout-field input[type="range"] {
+  width: 100%;
+}
+
+.sprout-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sprout-align-group {
+  display: flex;
+  gap: 4px;
+}
+
+.sprout-align-group button {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 12px;
+  border: 1px solid var(--sprout-border);
+  background: var(--sprout-panel-bg);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.sprout-align-group button.is-active {
+  background: var(--sprout-green);
+  color: #fff;
+  border-color: var(--sprout-green-dark);
+}
+
+.sprout-inspector-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sprout-text-muted);
+  margin: 18px 0 8px;
+}
+
+.sprout-inspector-section-title:first-child { margin-top: 0; }
+
+.sprout-box-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ---------- Modal ---------- */
+
+.sprout-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 32, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.sprout-modal-backdrop.sprout-hidden { display: none; }
+
+.sprout-modal {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  background: var(--sprout-panel-bg);
+  border-radius: var(--sprout-radius);
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.25);
+  padding: 22px;
+}
+
+.sprout-modal h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.sprout-modal__row { margin-bottom: 14px; }
+
+.sprout-modal__row label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.sprout-modal__filename {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 13px;
+  padding: 6px 9px;
+  background: var(--sprout-bg);
+  border: 1px solid var(--sprout-border);
+  border-radius: 7px;
+}
+
+.sprout-modal input[type="text"] {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--sprout-border);
+  border-radius: 7px;
+}
+
+.sprout-modal__error {
+  font-size: 12px;
+  color: var(--sprout-danger);
+  background: var(--sprout-danger-bg);
+  border: 1px solid #ffd7d5;
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+}
+
+.sprout-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ---------- Toasts ---------- */
+
+.sprout-toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+
+.sprout-toast {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fff;
+  box-shadow: var(--sprout-shadow);
+  max-width: 320px;
+}
+
+.sprout-toast--success { background: var(--sprout-green); }
+.sprout-toast--error { background: var(--sprout-danger); }
+.sprout-toast--info { background: #374151; }
+
+@media (max-width: 900px) {
+  .sprout-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  .sprout-sidebar, .sprout-inspector {
+    border: none;
+    border-bottom: 1px solid var(--sprout-border);
+    max-height: 180px;
+  }
+}

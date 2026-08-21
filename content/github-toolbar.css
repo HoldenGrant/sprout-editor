@@ -1,0 +1,45 @@
+/* content/github-toolbar.css
+ * Scoped, sprout-prefixed styles for the injected button. Never targets
+ * GitHub's own classes so it can't leak into or break GitHub's styling.
+ */
+
+.sprout-edit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2ea043, #22863a);
+  border: 1px solid #1a7431;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 20px;
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+
+.sprout-edit-button:hover {
+  filter: brightness(1.08);
+}
+
+.sprout-edit-button:active {
+  transform: translateY(1px);
+}
+
+/* Fallback floating button, used only when GitHub's toolbar DOM isn't found. */
+#sprout-floating-container {
+  position: fixed;
+  top: 72px;
+  right: 24px;
+  z-index: 2147483000;
+}
+
+#sprout-floating-container .sprout-edit-button {
+  margin-right: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
