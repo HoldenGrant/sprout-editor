@@ -23,6 +23,7 @@ import {
   SMART_TEXT_TAGS,
   SMART_BUTTON_TAGS,
   SMART_IMAGE_TAGS,
+  GENERIC_LEAF_TEXT_TAGS,
   SPROUT_ATTR,
   SPROUT_KINDS,
   SPROUT_UID_ATTR,
@@ -47,6 +48,12 @@ export function getEditableKind(el, useSproutMode) {
   if (SMART_IMAGE_TAGS.includes(el.tagName)) return SPROUT_KINDS.IMAGE;
   if (SMART_BUTTON_TAGS.includes(el.tagName)) return SPROUT_KINDS.BUTTON;
   if (SMART_TEXT_TAGS.includes(el.tagName)) return SPROUT_KINDS.TEXT;
+  // Generic containers (div/td/label/...) only count as editable text when
+  // they're a leaf holding real text — see GENERIC_LEAF_TEXT_TAGS in
+  // shared/constants.js for why this is conditional, unlike the tags above.
+  if (GENERIC_LEAF_TEXT_TAGS.includes(el.tagName) && isLeafTextElement(el) && el.textContent.trim()) {
+    return SPROUT_KINDS.TEXT;
+  }
   return null;
 }
 

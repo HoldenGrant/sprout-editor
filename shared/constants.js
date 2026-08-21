@@ -25,6 +25,18 @@ export const MESSAGE_TYPES = {
 // Tags eligible for MODE 1 "smart detection" text editing.
 export const SMART_TEXT_TAGS = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'SPAN', 'LI'];
 
+// Generic container tags that are ONLY treated as editable text when they're
+// a "leaf" holding nothing but text (see html-utils.js isLeafTextElement).
+// Unlike SMART_TEXT_TAGS above, these are never unconditionally editable —
+// a bare <div> is usually a big structural wrapper with lots of nested
+// content, and making every one of those individually clickable/
+// contentEditable would be both noisy (divs are everywhere) and risky
+// (typing inside a wrapper could mangle its nested structure). But a leaf
+// div/td/etc. — no child elements, just text, e.g. a template's
+// `<div class="stat-label">10+ years…</div>` — is exactly as safe to edit
+// as a <p>, and this pattern is extremely common in real-world templates.
+export const GENERIC_LEAF_TEXT_TAGS = ['DIV', 'TD', 'TH', 'DT', 'DD', 'LABEL', 'FIGCAPTION', 'SUMMARY', 'BLOCKQUOTE', 'CAPTION'];
+
 // Tags eligible for MODE 1 "smart detection" button/link editing.
 export const SMART_BUTTON_TAGS = ['A', 'BUTTON'];
 
