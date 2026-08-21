@@ -27,7 +27,7 @@ export const GITHUB_DEVICE_TOKEN_URL = 'https://github.com/login/oauth/access_to
 // permission "Contents: Read and write", "Enable Device Flow" checked under
 // the app's settings, installable on "Any account" so anyone can connect
 // their own repos — then paste its Client ID here. See README.md.
-export const GITHUB_APP_CLIENT_ID = 'REPLACE_WITH_YOUR_GITHUB_APP_CLIENT_ID';
+export const GITHUB_APP_CLIENT_ID = 'Iv23liH6tOU1eqyGUcG7';
 
 // runtime.sendMessage type used by the content script to ask the background
 // worker to open the editor. NOTE: content scripts are classic (non-module)
