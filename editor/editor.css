@@ -210,6 +210,10 @@ body {
   max-width: 480px;
 }
 
+#statusSettingsBtn {
+  margin-top: 14px;
+}
+
 /* ---------- Inspector form controls ---------- */
 
 .sprout-inspector__empty {

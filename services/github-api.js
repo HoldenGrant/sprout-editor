@@ -6,7 +6,7 @@
 // directly. Auth headers come from services/github-auth.js.
 
 import { GITHUB_API_BASE } from '../shared/constants.js';
-import { getAuthHeaders } from './github-auth.js';
+import { getAuthHeaders, hasToken } from './github-auth.js';
 
 export class GitHubApiError extends Error {
   constructor(message, status) {
@@ -113,7 +113,15 @@ async function toApiError(response, fallbackMessage) {
     );
   }
   if (response.status === 404) {
-    return new GitHubApiError(`Not found.${detail} ${fallbackMessage}`, 404);
+    // GitHub returns 404 (not 403) for a private repo/branch/path the
+    // requester can't see, to avoid leaking that it exists — so a 404 here
+    // is very often really an auth problem, not a typo. Steer the user
+    // toward the actual likely fix instead of a bare "Not found."
+    const tokenConfigured = await hasToken();
+    const hint = tokenConfigured
+      ? 'If this is a private repository, make sure your GitHub token in Sprout Editor’s options has access to it.'
+      : 'If this is a private repository, add a GitHub Personal Access Token in Sprout Editor’s options (⋮ menu → Options) — GitHub reports private files as "not found" to anyone without access.';
+    return new GitHubApiError(`Not found.${detail} ${fallbackMessage} ${hint}`, 404);
   }
   return new GitHubApiError(`${fallbackMessage}${detail}`, response.status);
 }

@@ -27,6 +27,7 @@ const els = {
   saveBtn: document.getElementById('saveBtn'),
   statusOverlay: document.getElementById('statusOverlay'),
   statusMessage: document.getElementById('statusMessage'),
+  statusSettingsBtn: document.getElementById('statusSettingsBtn'),
   previewFrame: document.getElementById('previewFrame'),
   inspectorBody: document.getElementById('inspectorBody'),
   elementList: document.getElementById('elementList'),
@@ -85,6 +86,7 @@ async function init() {
 
   wireToolbar();
   wireSaveModal();
+  els.statusSettingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
   window.addEventListener('beforeunload', (event) => {
     if (state.dirty) {
       event.preventDefault();
@@ -118,7 +120,11 @@ async function consumeSessionFileInfo() {
 }
 
 async function loadFile(fileInfo) {
-  setStatus(`Loading ${fileInfo.path} from ${fileInfo.owner}/${fileInfo.repo}@${fileInfo.branch}…`);
+  const tokenConfigured = await hasToken();
+  setStatus(
+    `Loading ${fileInfo.path} from ${fileInfo.owner}/${fileInfo.repo}@${fileInfo.branch}…` +
+      (tokenConfigured ? '' : ' (no GitHub token configured — this will only work for public repos)')
+  );
   try {
     const loaded = await loadGithubHtmlFile(fileInfo);
     state.sha = loaded.sha;
@@ -390,6 +396,7 @@ async function handleConfirmSave() {
 
 function setStatus(message) {
   els.statusMessage.textContent = message;
+  els.statusSettingsBtn.classList.add('sprout-hidden');
   els.statusOverlay.classList.remove('sprout-hidden', 'is-error');
 }
 
@@ -402,6 +409,9 @@ function showFatalError(error) {
   els.statusMessage.textContent = error?.message || 'Something went wrong.';
   els.statusOverlay.classList.remove('sprout-hidden');
   els.statusOverlay.classList.add('is-error');
+  // A load failure is very often a missing/insufficient GitHub token (private
+  // repos 404 for anyone without access) — offer a direct way to fix it.
+  els.statusSettingsBtn.classList.remove('sprout-hidden');
 }
 
 function showToast(message, type = 'info', durationMs = 4000) {
