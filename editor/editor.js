@@ -129,9 +129,16 @@ async function loadFile(fileInfo) {
     const loaded = await loadGithubHtmlFile(fileInfo);
     state.sha = loaded.sha;
     state.originalHtml = loaded.originalHtml;
-    await canvas.load(loaded.previewHtml);
+    const { hiddenPreloaderCount } = await canvas.load(loaded.previewHtml);
     hideStatus();
 
+    if (hiddenPreloaderCount > 0) {
+      showToast(
+        'Hid a loading-screen overlay in the preview (its script never ran, since scripts are disabled for safety). Your saved file is unaffected.',
+        'info',
+        7000
+      );
+    }
     if (loaded.editableCount === 0) {
       showToast('No editable elements were detected on this page.', 'info');
     }

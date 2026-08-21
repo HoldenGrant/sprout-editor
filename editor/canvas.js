@@ -33,7 +33,11 @@ export class Canvas {
     return this.iframe.contentDocument;
   }
 
-  /** Load preview HTML into the iframe (via srcdoc) and wire up interactions once it's ready. */
+  /**
+   * Load preview HTML into the iframe (via srcdoc) and wire up interactions
+   * once it's ready.
+   * @returns {Promise<{ hiddenPreloaderCount: number }>}
+   */
   load(previewHtml) {
     return new Promise((resolve) => {
       const handleLoad = () => {
@@ -41,11 +45,54 @@ export class Canvas {
         this.useSproutMode = documentUsesSproutMode(this.doc);
         this._injectEditorStyles();
         this._wireInteractions();
-        resolve();
+        const hiddenPreloaderCount = this._autoHidePreloaders();
+        resolve({ hiddenPreloaderCount });
       };
       this.iframe.addEventListener('load', handleLoad);
       this.iframe.srcdoc = previewHtml;
     });
+  }
+
+  /**
+   * Many template sites show a full-screen loading/splash overlay that a
+   * script normally fades out on window "load" (e.g. jQuery `.fadeOut()`).
+   * Sprout's sandboxed preview never runs site scripts (see the top-of-file
+   * comment — scripts are disabled for safety), so that overlay would
+   * otherwise stay stuck covering the whole page forever.
+   *
+   * This is a preview-only, CSS-only fix (`display: none` via inline style,
+   * same as any other editor-only preview affordance): it never touches the
+   * saved HTML, and it's deliberately conservative — an element must BOTH
+   * look like a loader by name AND actually be a fixed/absolute overlay
+   * covering most of the viewport, so it won't hide an unrelated small
+   * "Load More" button or similar.
+   * @returns {number} how many overlay elements were hidden
+   */
+  _autoHidePreloaders() {
+    const win = this.iframe.contentWindow;
+    if (!this.doc || !win) return 0;
+
+    const NAME_PATTERN = /load|preload|splash|spinner/i;
+    const viewportWidth = win.innerWidth;
+    const viewportHeight = win.innerHeight;
+    let hiddenCount = 0;
+
+    this.doc.querySelectorAll('body *').forEach((el) => {
+      const nameHint = `${el.id || ''} ${el.getAttribute('class') || ''}`;
+      if (!NAME_PATTERN.test(nameHint)) return;
+
+      const computed = win.getComputedStyle(el);
+      if (computed.position !== 'fixed' && computed.position !== 'absolute') return;
+
+      const rect = el.getBoundingClientRect();
+      const coversViewport = rect.width >= viewportWidth * 0.7 && rect.height >= viewportHeight * 0.7;
+      if (!coversViewport) return;
+
+      el.style.setProperty('display', 'none', 'important');
+      hiddenCount += 1;
+    });
+
+    return hiddenCount;
   }
 
   _injectEditorStyles() {
