@@ -79,8 +79,7 @@ async function handleDisconnect() {
 // ---------- Device flow ("Connect with GitHub") ----------
 
 async function handleConnectClick() {
-  els.connectBtn.disabled = true;
-  els.connectBtn.textContent = 'Connecting…';
+  setButtonBusy(els.connectBtn, 'Connecting…');
   hideConnectStatus();
 
   try {
@@ -93,7 +92,7 @@ async function handleConnectClick() {
         );
       },
       onPolling: () => {
-        els.connectBtn.textContent = 'Waiting for you to authorize…';
+        setButtonBusy(els.connectBtn, 'Waiting for you to authorize…');
       },
     });
 
@@ -110,10 +109,10 @@ async function handleConnectClick() {
   } catch (error) {
     showConnectStatus(error.message, 'error');
   } finally {
-    els.connectBtn.disabled = false;
-    els.connectBtn.textContent = 'Connect with GitHub';
+    setButtonIdle(els.connectBtn, 'Connect with GitHub');
   }
 }
+
 
 function showInstallPrompt(login) {
   els.connectStatus.className = 'status-box info';
@@ -163,14 +162,14 @@ async function handleValidate() {
   const token = els.tokenInput.value.trim();
   if (!token) return showStatus('Paste a token first.', 'error');
 
-  setBusy(true, els.validateBtn, 'Checking…');
+  setButtonBusy(els.validateBtn, 'Checking…');
   try {
     const login = await validateToken(token);
     showStatus(`✓ Token works — authenticated as @${login}.`, 'success');
   } catch (error) {
     showStatus(error.message, 'error');
   } finally {
-    setBusy(false, els.validateBtn, 'Validate');
+    setButtonIdle(els.validateBtn, 'Validate');
   }
 }
 
@@ -178,7 +177,7 @@ async function handleSave() {
   const token = els.tokenInput.value.trim();
   if (!token) return showStatus('Paste a token first.', 'error');
 
-  setBusy(true, els.saveBtn, 'Saving…');
+  setButtonBusy(els.saveBtn, 'Saving…');
   try {
     // Validate before saving so a typo doesn't get silently stored.
     const login = await validateToken(token);
@@ -191,7 +190,7 @@ async function handleSave() {
   } catch (error) {
     showStatus(error.message, 'error');
   } finally {
-    setBusy(false, els.saveBtn, 'Save Token');
+    setButtonIdle(els.saveBtn, 'Save Token');
   }
 }
 
@@ -199,8 +198,18 @@ function maskToken(token) {
   return `${'•'.repeat(Math.max(token.length - 4, 4))}${token.slice(-4)}`;
 }
 
-function setBusy(isBusy, button, label) {
-  button.disabled = isBusy;
+/** Disables a button and shows a spinner + label — call again with a new label to update it mid-flow (e.g. the connect button's two busy states). */
+function setButtonBusy(button, label) {
+  button.disabled = true;
+  button.innerHTML = '';
+  const spinner = document.createElement('span');
+  spinner.className = 'spinner';
+  spinner.setAttribute('aria-hidden', 'true');
+  button.append(spinner, document.createTextNode(label));
+}
+
+function setButtonIdle(button, label) {
+  button.disabled = false;
   button.textContent = label;
 }
 

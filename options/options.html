@@ -10,7 +10,8 @@
       --sprout-green-dark: #1a7431;
       --sprout-border: #e2e5e9;
       --sprout-bg: #f6f8fa;
-      --sprout-text-muted: #6b7280;
+      --sprout-text-muted: #5b6472;
+      --sprout-focus-ring: 0 0 0 3px rgba(46, 160, 67, 0.32);
     }
     * { box-sizing: border-box; }
     body {
@@ -19,6 +20,12 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--sprout-bg);
       color: #1f2328;
+    }
+    ::selection { background: #bfe8c8; color: var(--sprout-green-dark); }
+    a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: none;
+      box-shadow: var(--sprout-focus-ring);
+      border-radius: 6px;
     }
     .card {
       max-width: 520px;
@@ -29,10 +36,10 @@
       padding: 28px;
     }
     h1 { font-size: 18px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
-    h2 { font-size: 14px; margin: 0 0 4px; }
+    h2 { font-size: 13px; margin: 0 0 4px; }
     p.subtitle { color: var(--sprout-text-muted); font-size: 13px; margin: 0 0 22px; }
     ol { font-size: 13px; color: #374151; line-height: 1.7; padding-left: 20px; }
-    label { display: block; font-size: 12px; font-weight: 600; margin: 18px 0 6px; }
+    label { display: block; font-size: 11px; letter-spacing: 0.02em; font-weight: 600; margin: 18px 0 6px; }
     input[type="password"], input[type="text"] {
       width: 100%;
       padding: 8px 10px;
@@ -50,10 +57,26 @@
       border: 1px solid var(--sprout-border);
       background: #fff;
       cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
     }
+    button:hover:not(:disabled) { background: var(--sprout-bg); border-color: #c7ced8; }
     button.primary { background: var(--sprout-green); border-color: var(--sprout-green-dark); color: #fff; }
-    button.big { padding: 10px 20px; font-size: 14px; }
+    button.primary:hover:not(:disabled) { background: var(--sprout-green); filter: brightness(1.06); }
+    button.big { padding: 10px 20px; }
     button:disabled { opacity: 0.5; cursor: default; }
+    .spinner {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      margin-right: 7px;
+      vertical-align: -2px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      animation: spin 0.7s linear infinite;
+    }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.6s; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
     /* .status-box is the shared base (hidden); a state class (.success/.error/.info)
        makes it visible. Deliberately class-only, never mixed with #id selectors —
        an #id rule would always out-specificity a .class rule and silently win
@@ -63,7 +86,7 @@
     .status-box.success, #statusMessage.success { display: block; background: #eaf7ec; color: #1a7431; border: 1px solid #c9ecd0; }
     .status-box.error, #statusMessage.error { display: block; background: #fff1f0; color: #d1242f; border: 1px solid #ffd7d5; }
     .status-box.info { display: block; background: #eef4ff; color: #1d4ed8; border: 1px solid #c7d9fb; }
-    .token-state { font-size: 12px; color: var(--sprout-text-muted); margin-top: 6px; }
+    .token-state { font-size: 11px; color: var(--sprout-text-muted); margin-top: 6px; }
     .device-code {
       font-family: ui-monospace, SFMono-Regular, monospace;
       font-size: 22px;

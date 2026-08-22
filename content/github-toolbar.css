@@ -29,6 +29,13 @@
   transform: translateY(1px);
 }
 
+.sprout-edit-button:focus-visible {
+  outline: none;
+  /* A white ring (rather than a green one) so it's visible against the
+   * button's own green background in both GitHub's light and dark themes. */
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px rgba(46, 160, 67, 0.6);
+}
+
 /* Fallback floating button, used only when GitHub's toolbar DOM isn't found. */
 #sprout-floating-container {
   position: fixed;

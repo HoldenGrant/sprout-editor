@@ -24,6 +24,7 @@ const els = {
   undoBtn: document.getElementById('undoBtn'),
   redoBtn: document.getElementById('redoBtn'),
   previewBtn: document.getElementById('previewBtn'),
+  previewBtnLabel: document.getElementById('previewBtnLabel'),
   saveBtn: document.getElementById('saveBtn'),
   statusOverlay: document.getElementById('statusOverlay'),
   statusMessage: document.getElementById('statusMessage'),
@@ -285,8 +286,10 @@ function wireToolbar() {
     const enteringPreview = !previewModeActive;
     previewModeActive = enteringPreview;
     canvas.setPreviewMode(enteringPreview);
+    // The eye / eye-off icon swap is pure CSS, gated on .is-active (see
+    // editor.css) — only the text label needs updating here.
     els.previewBtn.classList.toggle('is-active', enteringPreview);
-    els.previewBtn.textContent = enteringPreview ? '✏️ Exit Preview' : '👁 Preview';
+    els.previewBtnLabel.textContent = enteringPreview ? 'Exit Preview' : 'Preview';
   });
   els.saveBtn.addEventListener('click', handleSaveClick);
 }
@@ -426,5 +429,10 @@ function showToast(message, type = 'info', durationMs = 4000) {
   toast.className = `sprout-toast sprout-toast--${type}`;
   toast.textContent = message;
   els.toastContainer.appendChild(toast);
-  setTimeout(() => toast.remove(), durationMs);
+  setTimeout(() => {
+    // .is-leaving plays the fade/slide-out defined in editor.css; the actual
+    // removal waits for it instead of vanishing mid-frame.
+    toast.classList.add('is-leaving');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  }, durationMs);
 }

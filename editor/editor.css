@@ -12,11 +12,12 @@
   --sprout-panel-bg: #ffffff;
   --sprout-border: #e2e5e9;
   --sprout-text: #1f2328;
-  --sprout-text-muted: #6b7280;
+  --sprout-text-muted: #5b6472;
   --sprout-danger: #d1242f;
   --sprout-danger-bg: #fff1f0;
   --sprout-radius: 10px;
   --sprout-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --sprout-focus-ring: 0 0 0 3px rgba(46, 160, 67, 0.32);
 }
 
 * { box-sizing: border-box; }
@@ -26,6 +27,55 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--sprout-text);
   background: var(--sprout-bg);
+  scrollbar-color: #c3cad3 transparent;
+}
+
+::selection {
+  background: #bfe8c8;
+  color: var(--sprout-green-dark);
+}
+
+/* Browser-default focus rings don't match this palette — theme them instead
+ * of leaving the platform default, and only ever on :focus-visible so mouse
+ * clicks stay clean. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--sprout-focus-ring);
+  border-radius: 6px;
+}
+
+/* Custom scrollbars for the chrome panels (WebKit/Chromium — this ships in a
+ * Chrome extension, so no non-Chromium fallback is needed). */
+.sprout-sidebar::-webkit-scrollbar,
+.sprout-inspector::-webkit-scrollbar {
+  width: 10px;
+}
+.sprout-sidebar::-webkit-scrollbar-thumb,
+.sprout-inspector::-webkit-scrollbar-thumb {
+  background: #c3cad3;
+  border-radius: 999px;
+  border: 2px solid var(--sprout-panel-bg);
+}
+.sprout-sidebar::-webkit-scrollbar-track,
+.sprout-inspector::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Shared 18x18 icon glyphs (see the <symbol> defs in editor.html) — one
+ * consistent stroke weight everywhere instead of mixing emoji as icons. */
+.sprout-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .sprout-app {
@@ -114,6 +164,12 @@ body {
   color: var(--sprout-green-dark);
 }
 
+/* Preview button shows the eye when idle, eye-off once active — CSS-only
+ * swap driven by the .is-active class editor.js already toggles. */
+.sprout-icon--eye-off { display: none; }
+.sprout-btn.is-active .sprout-icon--eye { display: none; }
+.sprout-btn.is-active .sprout-icon--eye-off { display: block; }
+
 /* ---------- Body layout ---------- */
 
 .sprout-body {
@@ -153,6 +209,9 @@ body {
 }
 
 .sprout-element-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   padding: 8px 10px;
   font-size: 13px;
   border-radius: 8px;
@@ -160,8 +219,14 @@ body {
   transition: background 0.15s ease;
 }
 
+.sprout-element-item .sprout-icon { color: var(--sprout-text-muted); }
+
 .sprout-element-item:hover {
   background: var(--sprout-bg);
+}
+
+.sprout-element-item:hover .sprout-icon {
+  color: var(--sprout-green-dark);
 }
 
 .sprout-sidebar__hint {
@@ -204,10 +269,37 @@ body {
 
 .sprout-status-overlay.sprout-hidden { display: none; }
 
+.sprout-status-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .sprout-status-overlay.is-error #statusMessage {
   color: var(--sprout-danger);
   white-space: pre-wrap;
   max-width: 480px;
+}
+
+/* Loading spinner — only during the loading state, never alongside an error. */
+.sprout-spinner {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  border: 3px solid var(--sprout-border);
+  border-top-color: var(--sprout-green);
+  animation: sprout-spin 0.7s linear infinite;
+}
+
+.sprout-status-overlay.is-error .sprout-spinner { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sprout-spinner { animation-duration: 1.6s; }
+}
+
+@keyframes sprout-spin {
+  to { transform: rotate(360deg); }
 }
 
 #statusSettingsBtn {
@@ -245,6 +337,14 @@ body {
   font-family: inherit;
   background: var(--sprout-panel-bg);
   color: var(--sprout-text);
+  transition: border-color 0.15s ease;
+}
+
+.sprout-field input[type="text"]:hover,
+.sprout-field input[type="number"]:hover,
+.sprout-field input[type="url"]:hover,
+.sprout-field textarea:hover {
+  border-color: #c7ced8;
 }
 
 .sprout-field textarea {
@@ -264,6 +364,7 @@ body {
 
 .sprout-field input[type="range"] {
   width: 100%;
+  accent-color: var(--sprout-green);
 }
 
 .sprout-field-row {
@@ -285,6 +386,12 @@ body {
   background: var(--sprout-panel-bg);
   border-radius: 7px;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.sprout-align-group button:hover:not(.is-active) {
+  border-color: #c7ced8;
+  background: var(--sprout-bg);
 }
 
 .sprout-align-group button.is-active {
@@ -320,9 +427,24 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 100;
+  opacity: 1;
+  transition: opacity 0.16s ease, display 0.16s allow-discrete;
 }
 
-.sprout-modal-backdrop.sprout-hidden { display: none; }
+.sprout-modal-backdrop.sprout-hidden {
+  opacity: 0;
+  display: none;
+}
+
+/* Reveal transition for the backdrop + panel — degrades gracefully to an
+ * instant show/hide in browsers without @starting-style support. */
+@starting-style {
+  .sprout-modal-backdrop:not(.sprout-hidden) { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprout-modal-backdrop { transition-duration: 0.01ms; }
+}
 
 .sprout-modal {
   width: 420px;
@@ -331,6 +453,14 @@ body {
   border-radius: var(--sprout-radius);
   box-shadow: 0 12px 32px rgba(16, 24, 40, 0.25);
   padding: 22px;
+  transform: scale(1);
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sprout-modal-backdrop.sprout-hidden .sprout-modal { transform: scale(0.96); }
+
+@starting-style {
+  .sprout-modal-backdrop:not(.sprout-hidden) .sprout-modal { transform: scale(0.96); }
 }
 
 .sprout-modal h2 {
@@ -398,8 +528,27 @@ body {
   border-radius: 8px;
   font-size: 13px;
   color: #fff;
-  box-shadow: var(--sprout-shadow);
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.16);
   max-width: 320px;
+  animation: sprout-toast-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sprout-toast.is-leaving {
+  animation: sprout-toast-out 0.16s ease forwards;
+}
+
+@keyframes sprout-toast-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+
+@keyframes sprout-toast-out {
+  to { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Shorten rather than remove — editor.js waits for "animationend" to
+   * actually remove the element, so animation: none would leave it stuck. */
+  .sprout-toast, .sprout-toast.is-leaving { animation-duration: 1ms; }
 }
 
 .sprout-toast--success { background: var(--sprout-green); }
