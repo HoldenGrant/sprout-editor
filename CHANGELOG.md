@@ -10,7 +10,15 @@ change landed in this repo.
   page's DOM structure, synced bidirectionally with canvas selection. Every element gets
   a layer id (not just ones smart detection considers editable — structural wrapper
   `<div>`s show up too), with scannable labels (tag + first class + a text/alt preview,
-  not just bare tag names). (`editor/layers.js`, new)
+  not just bare tag names). Rows with children get a collapse/expand toggle, and
+  selecting something in canvas auto-expands any collapsed ancestor so it's never
+  highlighted inside a folded, invisible branch. (`editor/layers.js`, new)
+- **Background color/image editing for sections and containers.** `div`, `section`,
+  `article`, `header`, `footer`, `aside`, `main`, `nav`, `ul`, `ol`, `figure`, `table`,
+  and `form` are now full participants in the same save/undo pipeline as everything
+  else — reachable via the Layers panel (deliberately not via canvas hover/click, to
+  avoid making every `<div>` on the page clickable), with Inspector controls for
+  background color, background image, and spacing.
 - **File-switcher dropdown** in the toolbar — switch which `.html` file in the repo
   you're editing without leaving the tab. Lists every `.html`/`.htm` file at any depth
   via one Git Trees API call; switching with unsaved changes prompts for confirmation
@@ -36,6 +44,12 @@ change landed in this repo.
   [holdengrant.github.io/sprout-editor](https://holdengrant.github.io/sprout-editor/).
 
 ### Fixed
+- **Selecting a section/div in the Layers panel not showing anything in the Inspector.**
+  Root cause: structural containers had no `data-sprout-uid` at all before this — there
+  was nothing for Inspector to render and nothing to save even if there had been.
+  Direct canvas clicks only ever "worked" because they were always clicking something
+  already in the editable-uid system. Fixed by giving containers a real uid (see
+  "Added" above) rather than patching the symptom.
 - **GitHub's own React UI silently removing the injected button.** The button could
   appear then vanish seconds later with no URL change — GitHub re-renders the toolbar
   region for reasons unrelated to navigation, wiping out any DOM node the extension

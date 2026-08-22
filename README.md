@@ -109,9 +109,9 @@ site, not part of the loadable extension itself.)
    - Visit `https://github.com/HoldenGrant/sprout/blob/main/index.html`
    - Click **🌱 Edit with Sprout**
    - Click any heading, paragraph, button, or image to edit it
-   - Browse the **Layers** panel in the sidebar to see the page's structure and jump
-     straight to any element, including plain wrapper `<div>`s that aren't directly
-     editable themselves
+   - Browse the **Layers** panel in the sidebar (collapsible) to see the page's
+     structure and jump straight to any element — including sections and `<div>`s,
+     which get their own background color/image controls
    - Use the **file dropdown** in the toolbar to switch to another `.html` file in the
      same repo without leaving the tab
    - **Ctrl/Cmd+Z** / **Ctrl/Cmd+Shift+Z** to undo/redo
@@ -128,6 +128,13 @@ site, not part of the loadable extension itself.)
   a template's `<div class="stat-label">10+ years…</div>` qualifies, a `<div>` wrapping
   a whole page section doesn't. See `GENERIC_LEAF_TEXT_TAGS` in `shared/constants.js`
   for why that distinction matters.
+- **Structural containers** (`div, section, article, header, footer, aside, main, nav,
+  ul, ol, figure, table, form`) are editable too — background color, background image,
+  and spacing — but only reachable through the **Layers panel**, never by hovering or
+  clicking them directly in the canvas. Every `<div>` on a real page becoming
+  individually clickable would be exactly the noise the leaf-only rule above is
+  designed to avoid; the Layers panel is the deliberate way to reach a specific section
+  without that. See `CONTAINER_TAGS` in `shared/constants.js`.
 
 ## Smart handling for script-dependent sites
 
