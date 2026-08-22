@@ -48,6 +48,7 @@ sprout-editor/
 │   ├── canvas.js                    # sandboxed preview iframe, hover/select/inline-edit
 │   ├── inspector.js                 # right-panel edit controls
 │   ├── sidebar.js                   # left-panel element categories
+│   ├── layers.js                    # left-panel DOM tree, synced with canvas selection
 │   └── history.js                   # undo/redo command stack
 ├── services/
 │   ├── github-api.js                # Contents API: get/update file
@@ -108,6 +109,9 @@ site, not part of the loadable extension itself.)
    - Visit `https://github.com/HoldenGrant/sprout/blob/main/index.html`
    - Click **🌱 Edit with Sprout**
    - Click any heading, paragraph, button, or image to edit it
+   - Browse the **Layers** panel in the sidebar to see the page's structure and jump
+     straight to any element, including plain wrapper `<div>`s that aren't directly
+     editable themselves
    - Use the **file dropdown** in the toolbar to switch to another `.html` file in the
      same repo without leaving the tab
    - **Ctrl/Cmd+Z** / **Ctrl/Cmd+Shift+Z** to undo/redo
@@ -193,3 +197,18 @@ patterns get handled anyway:
   inserted itself. `github-toolbar.js` checks every 800ms that its button is still
   actually in the DOM and re-inserts it if a host re-render removed it — a separate
   concern from detecting *which* file the button should be showing for.
+- **Two separate, deliberately uncoupled element-id schemes.** `data-sprout-uid`
+  (`services/html-utils.js`) means "this element has Inspector controls" and only ever
+  goes on elements smart detection or `data-sprout` marks as editable. `data-sprout-
+  layer-id` (`editor/layers.js`) means "this element shows up in the Layers panel" and
+  goes on nearly everything, including plain structural wrappers with no Inspector
+  controls at all. Collapsing these into one scheme would either flood the editable-uid
+  system with non-editable wrapper divs, or leave the Layers tree unable to reference
+  (and scroll to / outline) anything that isn't independently editable.
+- **Carousels/sliders aren't just unhidden, their layout mechanism is neutralized too.**
+  Bootstrap Carousel doesn't hide inactive slides with `position:absolute` — it uses
+  `float:left; width:100%; margin-right:-100%`, which keeps pulling every slide back on
+  top of the same spot regardless of `display`/`position`. `_revealHiddenSlides()`
+  resets `float`/`width`/`margin` too, not just the more obvious `display`/`visibility`/
+  `position`/`opacity` — the first pass without that produced illegible overlapping
+  text.

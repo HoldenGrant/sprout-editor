@@ -6,6 +6,11 @@ change landed in this repo.
 ## 2026-08-22
 
 ### Added
+- **Layers panel** in the sidebar — an always-visible, Elementor-style tree of the whole
+  page's DOM structure, synced bidirectionally with canvas selection. Every element gets
+  a layer id (not just ones smart detection considers editable — structural wrapper
+  `<div>`s show up too), with scannable labels (tag + first class + a text/alt preview,
+  not just bare tag names). (`editor/layers.js`, new)
 - **File-switcher dropdown** in the toolbar — switch which `.html` file in the repo
   you're editing without leaving the tab. Lists every `.html`/`.htm` file at any depth
   via one Git Trees API call; switching with unsaved changes prompts for confirmation
