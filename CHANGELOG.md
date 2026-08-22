@@ -52,6 +52,14 @@ change landed in this repo.
 - **Missing local images with an `onerror` fallback showing broken instead of the
   fallback.** Same root cause as above (the fallback is also a script). Now parses a
   `this.src='...'` `onerror` pattern and applies the same fallback the live site would.
+- **Carousel/slider slides past the first being completely unreachable, not just
+  unanimated.** Bootstrap Carousel, Slick, and similar libraries hide every slide but
+  the active one via real CSS, and only a script that never runs in the sandbox moves
+  which one is active. Every element matching a known slide-item naming pattern
+  (`carousel-item`, `slick-slide`, `swiper-slide`, `owl-item`, generic `*-slide` names)
+  is now forced into normal scrollable document flow instead — trading "looks like an
+  animated carousel" for "every slide is actually selectable and editable," which is
+  the right trade for an editing tool. Preview-only, as always.
 - **Plain-text `<div>`/`<td>`/`<label>`/etc. not being detected as editable.** Smart
   detection originally only covered `h1-h6/p/span/li`. Now also treats these container
   tags as editable text, but *only* when they're a leaf (no nested elements) — a bare

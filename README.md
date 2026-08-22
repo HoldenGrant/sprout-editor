@@ -142,6 +142,13 @@ patterns get handled anyway:
   fallback seamlessly to real visitors; the sandbox can't run that handler either.
   `file-loader.js` `applyOnerrorFallback()` parses that exact pattern and applies the
   same fallback itself when the primary local image can't be loaded.
+- **Carousels/sliders.** Bootstrap Carousel, Slick, Swiper, Owl Carousel, and similar
+  libraries hide every slide but the active one via real CSS, and only their JS (which
+  never runs) moves which one is active — left alone, every slide but the first would be
+  not just unanimated but genuinely unreachable. `canvas.js` `_revealHiddenSlides()`
+  forces every element matching a known slide-item class pattern into normal document
+  flow, trading "looks like an animated carousel" for "every slide is actually
+  selectable and editable."
 
 ## Known v1 limitations
 
