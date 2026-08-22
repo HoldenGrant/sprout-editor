@@ -7,7 +7,7 @@
 // "two DOM representations" note in services/html-utils.js for why `edits`
 // is authoritative for saving rather than the live preview DOM.
 
-import { STORAGE_KEYS, defaultCommitMessage, originalValueAttr } from '../shared/constants.js';
+import { STORAGE_KEYS, defaultCommitMessage, originalValueAttr, SPROUT_UID_ATTR } from '../shared/constants.js';
 import { loadGithubHtmlFile, buildPreviewFromHtml } from '../services/file-loader.js';
 import { getEditableKind, serializeForSave } from '../services/html-utils.js';
 import { updateFile, utf8ToBase64, listHtmlFiles, GitHubConflictError, GitHubAuthError } from '../services/github-api.js';
@@ -15,6 +15,7 @@ import { hasToken } from '../services/github-auth.js';
 import { Canvas } from './canvas.js';
 import { Inspector } from './inspector.js';
 import { initSidebar } from './sidebar.js';
+import { Layers, LAYER_ID_ATTR } from './layers.js';
 import { HistoryStack, attachHistoryKeyboardShortcuts } from './history.js';
 
 // ---------- DOM references ----------
@@ -33,6 +34,7 @@ const els = {
   previewFrame: document.getElementById('previewFrame'),
   inspectorBody: document.getElementById('inspectorBody'),
   elementList: document.getElementById('elementList'),
+  layersTree: document.getElementById('layersTree'),
   saveModal: document.getElementById('saveModal'),
   saveModalFileName: document.getElementById('saveModalFileName'),
   commitMessageInput: document.getElementById('commitMessageInput'),
@@ -57,6 +59,7 @@ const state = {
 
 let canvas;
 let inspector;
+let layers;
 let historyStack;
 let previewModeActive = false;
 
@@ -78,6 +81,7 @@ async function init() {
     onAttrChange: handleAttrChange,
     onStyleChange: handleStyleChange,
   });
+  layers = new Layers(els.layersTree, { onSelect: handleLayerSelect });
 
   initSidebar(els.elementList, {
     onCategoryClick: (category) => {
@@ -134,6 +138,7 @@ async function loadFile(fileInfo) {
     state.sha = loaded.sha;
     state.originalHtml = loaded.originalHtml;
     const { hiddenPreloaderCount, revealedSlideCount } = await canvas.load(loaded.previewHtml);
+    layers.rebuild(canvas.doc);
     hideStatus();
 
     if (hiddenPreloaderCount > 0) {
@@ -227,12 +232,36 @@ function handleSelect({ uid, kind, el }) {
   state.selected = { uid, kind, el };
   state.selectionTextBaseline = el.textContent;
   inspector.render({ uid, kind, el });
+  layers.setActiveLayer(el.getAttribute(LAYER_ID_ATTR));
 }
 
 function handleDeselect() {
   state.selected = null;
   state.selectionTextBaseline = null;
   inspector.clear();
+  layers.setActiveLayer(null);
+}
+
+/**
+ * A row clicked in the Layers panel. Editable elements (they have a
+ * data-sprout-uid) go through the normal select() path, exactly as if the
+ * user had clicked them in the canvas — same outline, same Inspector.
+ * Non-editable structural elements (a plain wrapper <div>, a <section>)
+ * have no uid and nothing for Inspector to show, so they just get scrolled
+ * to and briefly outlined instead.
+ */
+function handleLayerSelect(layerId) {
+  const el = layers.getElementByLayerId(layerId);
+  if (!el) return;
+
+  const uid = el.getAttribute(SPROUT_UID_ATTR);
+  if (uid) {
+    canvas.select(uid); // this calls handleSelect(), which syncs the layer highlight back
+  } else {
+    canvas.deselect();
+    canvas.focusElement(el);
+    layers.setActiveLayer(layerId);
+  }
 }
 
 /** In-canvas contentEditable text commit (blur). The live DOM is already updated by the browser. */
@@ -450,6 +479,7 @@ async function handleConfirmSave() {
     handleDeselect();
     const preview = await buildPreviewFromHtml(finalHtml, state.fileInfo);
     await canvas.load(preview.previewHtml);
+    layers.rebuild(canvas.doc); // fresh iframe doc means the old layer ids no longer point anywhere
     clearDirty();
     refreshToolbarButtons();
     closeSaveModal();

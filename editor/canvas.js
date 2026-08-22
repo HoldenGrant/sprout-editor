@@ -154,6 +154,7 @@ export class Canvas {
       [${SPROUT_UID_ATTR}] { cursor: pointer; }
       .sprout-hover-outline { outline: 2px dashed #2ea043 !important; outline-offset: 2px; }
       .sprout-selected-outline { outline: 2px solid #2ea043 !important; outline-offset: 3px; }
+      .sprout-layer-focus-outline { outline: 2px solid #2ea043 !important; outline-offset: 3px; transition: outline-color 0.3s ease 1.1s; }
       [contenteditable="true"] { outline: 2px solid #2ea043 !important; outline-offset: 3px; cursor: text; }
       html.sprout-preview-mode [${SPROUT_UID_ATTR}] { cursor: default !important; }
     `;
@@ -212,6 +213,21 @@ export class Canvas {
     }
     this.selectedUid = null;
     this.onDeselect?.();
+  }
+
+  /**
+   * Scrolls to and briefly outlines a non-editable structural element (a
+   * plain wrapper <div>/<section>/etc with no Inspector controls of its
+   * own) — used by the Layers panel when the clicked row isn't something
+   * select() applies to. Purely a "here's what you clicked" flash; it
+   * doesn't touch selection state.
+   */
+  focusElement(el) {
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('sprout-layer-focus-outline');
+    clearTimeout(this._layerFocusTimeout);
+    this._layerFocusTimeout = setTimeout(() => el.classList.remove('sprout-layer-focus-outline'), 1400);
   }
 
   _enableInlineTextEditing(el, uid) {

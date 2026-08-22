@@ -263,6 +263,54 @@ textarea:focus-visible,
   line-height: 1.5;
 }
 
+/* ---------- Layers panel ---------- */
+
+.sprout-layers-title {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--sprout-border);
+}
+
+.sprout-layers-tree-wrap {
+  font-size: 12px;
+}
+
+.sprout-layers-tree,
+.sprout-layers-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sprout-layer-label {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11.5px;
+  color: var(--sprout-text-muted);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sprout-layer-label:hover {
+  background: var(--sprout-bg);
+  color: var(--sprout-text);
+}
+
+.sprout-layer-row.is-active > .sprout-layer-label {
+  background: #eaf7ec;
+  color: var(--sprout-green-dark);
+  font-weight: 600;
+}
+
 /* ---------- Canvas ---------- */
 
 .sprout-canvas-wrap {
