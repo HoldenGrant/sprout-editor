@@ -65,22 +65,46 @@ export class Layers {
       if (el.id === 'sprout-editor-injected-styles') continue;
 
       const layerId = assignId(el);
+      // SVGs are shown as a single leaf — their internal path/circle/etc
+      // structure is icon plumbing, not meaningful page structure.
+      const hasChildren = el.tagName !== 'SVG' && el.children.length > 0;
 
       const li = document.createElement('li');
       li.className = 'sprout-layer-row';
       li.dataset.layerId = layerId;
 
+      const head = document.createElement('div');
+      head.className = 'sprout-layer-row-head';
+      head.style.paddingLeft = `${depth * 14}px`;
+
+      if (hasChildren) {
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'sprout-layer-toggle';
+        toggle.setAttribute('aria-label', 'Collapse or expand');
+        toggle.textContent = '▾';
+        toggle.addEventListener('click', (event) => {
+          event.stopPropagation(); // don't also trigger the label's select-this-element click
+          const collapsed = li.classList.toggle('is-collapsed');
+          toggle.textContent = collapsed ? '▸' : '▾';
+        });
+        head.appendChild(toggle);
+      } else {
+        const spacer = document.createElement('span');
+        spacer.className = 'sprout-layer-toggle-spacer';
+        head.appendChild(spacer);
+      }
+
       const label = document.createElement('button');
       label.type = 'button';
       label.className = 'sprout-layer-label';
-      label.style.paddingLeft = `${8 + depth * 14}px`;
       label.textContent = this._describe(el);
       label.addEventListener('click', () => this.onSelect?.(layerId));
-      li.appendChild(label);
+      head.appendChild(label);
 
-      // SVGs are shown as a single leaf — their internal path/circle/etc
-      // structure is icon plumbing, not meaningful page structure.
-      if (el.tagName !== 'SVG' && el.children.length > 0) {
+      li.appendChild(head);
+
+      if (hasChildren) {
         const childList = document.createElement('ul');
         this._buildLevel(el, childList, assignId, depth + 1);
         li.appendChild(childList);
@@ -113,9 +137,24 @@ export class Layers {
   setActiveLayer(layerId) {
     this.container.querySelectorAll('.sprout-layer-row.is-active').forEach((row) => row.classList.remove('is-active'));
     if (!layerId) return;
+
     const row = this.container.querySelector(`[data-layer-id="${CSS.escape(layerId)}"]`);
-    row?.classList.add('is-active');
-    row?.scrollIntoView({ block: 'nearest' });
+    if (!row) return;
+    row.classList.add('is-active');
+
+    // The match might be a canvas-driven selection (e.g. clicking directly in
+    // the preview) rather than a layers click — expand any collapsed
+    // ancestor rows so it's actually visible, not highlighted off-screen
+    // inside a folded branch.
+    let ancestor = row.parentElement?.closest('.sprout-layer-row');
+    while (ancestor) {
+      ancestor.classList.remove('is-collapsed');
+      const toggle = ancestor.querySelector(':scope > .sprout-layer-row-head > .sprout-layer-toggle');
+      if (toggle) toggle.textContent = '▾';
+      ancestor = ancestor.parentElement?.closest('.sprout-layer-row');
+    }
+
+    row.scrollIntoView({ block: 'nearest' });
   }
 
   getElementByLayerId(layerId) {

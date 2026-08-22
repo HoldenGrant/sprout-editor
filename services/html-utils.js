@@ -24,6 +24,7 @@ import {
   SMART_BUTTON_TAGS,
   SMART_IMAGE_TAGS,
   GENERIC_LEAF_TEXT_TAGS,
+  CONTAINER_TAGS,
   SPROUT_ATTR,
   SPROUT_KINDS,
   SPROUT_UID_ATTR,
@@ -53,6 +54,13 @@ export function getEditableKind(el, useSproutMode) {
   // shared/constants.js for why this is conditional, unlike the tags above.
   if (GENERIC_LEAF_TEXT_TAGS.includes(el.tagName) && isLeafTextElement(el) && el.textContent.trim()) {
     return SPROUT_KINDS.TEXT;
+  }
+  // Anything left that's a structural container (a non-leaf div/section/...,
+  // or a leaf one with no text) is reachable via the Layers panel as a
+  // "container" — background color/image + spacing controls, but never
+  // wired for canvas hover/click (see CONTAINER_TAGS in shared/constants.js).
+  if (CONTAINER_TAGS.includes(el.tagName)) {
+    return SPROUT_KINDS.CONTAINER;
   }
   return null;
 }

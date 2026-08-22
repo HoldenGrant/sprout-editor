@@ -163,6 +163,14 @@ export class Canvas {
 
   _wireInteractions() {
     this.doc.querySelectorAll(`[${SPROUT_UID_ATTR}]`).forEach((el) => {
+      // Containers (div/section/...) have a uid — so save/undo and the
+      // Layers panel can reach them — but are deliberately NOT hoverable/
+      // clickable here. Every <div> on a real page would otherwise become
+      // individually clickable, which is exactly the noise the tag-based
+      // detection rules elsewhere are designed to avoid. Reach a container
+      // through the Layers panel instead (see editor/layers.js).
+      if (getEditableKind(el, this.useSproutMode) === SPROUT_KINDS.CONTAINER) return;
+
       el.addEventListener('mouseenter', () => {
         if (this.previewMode || el.getAttribute(SPROUT_UID_ATTR) === this.selectedUid) return;
         el.classList.add('sprout-hover-outline');
@@ -192,6 +200,12 @@ export class Canvas {
     const el = this.getElementByUid(uid);
     if (!el) return;
 
+    // Only scrolls if the element isn't already fully visible — a direct
+    // click in canvas means it's already on screen (jumping the viewport
+    // anyway would be jarring), but selection triggered from the Layers
+    // panel can land on something scrolled well out of view.
+    this._scrollIntoViewIfNeeded(el);
+
     this.selectedUid = uid;
     el.classList.remove('sprout-hover-outline');
     el.classList.add('sprout-selected-outline');
@@ -215,6 +229,16 @@ export class Canvas {
     this.onDeselect?.();
   }
 
+  _scrollIntoViewIfNeeded(el) {
+    const win = this.iframe.contentWindow;
+    if (!win) return;
+    const rect = el.getBoundingClientRect();
+    const fullyVisible = rect.top >= 0 && rect.bottom <= win.innerHeight;
+    if (!fullyVisible) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
   /**
    * Scrolls to and briefly outlines a non-editable structural element (a
    * plain wrapper <div>/<section>/etc with no Inspector controls of its
@@ -224,7 +248,7 @@ export class Canvas {
    */
   focusElement(el) {
     if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    this._scrollIntoViewIfNeeded(el);
     el.classList.add('sprout-layer-focus-outline');
     clearTimeout(this._layerFocusTimeout);
     this._layerFocusTimeout = setTimeout(() => el.classList.remove('sprout-layer-focus-outline'), 1400);

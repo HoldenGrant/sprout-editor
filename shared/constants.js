@@ -69,12 +69,22 @@ export const SMART_BUTTON_TAGS = ['A', 'BUTTON'];
 // Tags eligible for MODE 1 "smart detection" image editing.
 export const SMART_IMAGE_TAGS = ['IMG'];
 
+// Structural container tags — reachable and editable (background color/image,
+// padding/margin) via the Layers panel, but deliberately NOT wired for hover/
+// click in the canvas itself (see canvas.js _wireInteractions). Every <div>
+// on a real page would otherwise become individually hoverable/clickable,
+// which is exactly the noise GENERIC_LEAF_TEXT_TAGS above was designed to
+// avoid — the Layers panel is a more deliberate way to reach a specific
+// section without cluttering the main click-to-edit surface.
+export const CONTAINER_TAGS = ['DIV', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'ASIDE', 'MAIN', 'NAV', 'UL', 'OL', 'FIGURE', 'TABLE', 'FORM'];
+
 // MODE 2 explicit opt-in attribute. Value determines the editor kind.
 export const SPROUT_ATTR = 'data-sprout';
 export const SPROUT_KINDS = {
   TEXT: 'text',
   IMAGE: 'image',
   BUTTON: 'button',
+  CONTAINER: 'container',
 };
 
 // Internal attribute the editor stamps on every editable element so it can be

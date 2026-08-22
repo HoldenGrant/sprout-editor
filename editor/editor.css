@@ -282,10 +282,46 @@ textarea:focus-visible,
   padding: 0;
 }
 
+.sprout-layer-row-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sprout-layer-toggle,
+.sprout-layer-toggle-spacer {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 20px;
+}
+
+.sprout-layer-toggle {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 9px;
+  color: var(--sprout-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.sprout-layer-toggle:hover {
+  background: var(--sprout-bg);
+  color: var(--sprout-text);
+}
+
+.sprout-layer-row.is-collapsed > ul {
+  display: none;
+}
+
 .sprout-layer-label {
   display: block;
-  width: 100%;
-  padding: 4px 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px 4px 2px;
   border: none;
   background: none;
   border-radius: 6px;
@@ -305,7 +341,7 @@ textarea:focus-visible,
   color: var(--sprout-text);
 }
 
-.sprout-layer-row.is-active > .sprout-layer-label {
+.sprout-layer-row.is-active > .sprout-layer-row-head > .sprout-layer-label {
   background: #eaf7ec;
   color: var(--sprout-green-dark);
   font-weight: 600;

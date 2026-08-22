@@ -37,6 +37,7 @@ export class Inspector {
     if (kind === SPROUT_KINDS.TEXT) this._renderTextPanel(uid, el);
     else if (kind === SPROUT_KINDS.BUTTON) this._renderButtonPanel(uid, el);
     else if (kind === SPROUT_KINDS.IMAGE) this._renderImagePanel(uid, el);
+    else if (kind === SPROUT_KINDS.CONTAINER) this._renderContainerPanel(uid, el);
 
     this._renderSpacingSection(uid, el);
   }
@@ -135,6 +136,41 @@ export class Inspector {
         this._applyStyle(uid, el, 'border-radius', value ? `${value}px` : '');
       })
     );
+  }
+
+  _renderContainerPanel(uid, el) {
+    this._sectionTitle('Section / Container');
+
+    const firstClass = (el.getAttribute('class') || '').trim().split(/\s+/)[0];
+    const hint = document.createElement('p');
+    hint.className = 'sprout-inspector__empty';
+    hint.textContent = `<${el.tagName.toLowerCase()}${firstClass ? ` class="${firstClass}"` : ''}> — reached via the Layers panel. Edit the text/images inside it directly, or set a background below.`;
+    this.container.appendChild(hint);
+
+    this.container.appendChild(
+      this._colorField('Background color', this._currentColor(el, 'backgroundColor'), (value) => {
+        this._applyStyle(uid, el, 'background-color', value);
+      })
+    );
+
+    // Only reads/writes the INLINE background-image, never the computed value —
+    // a background coming from an external CSS class may have been rewritten to
+    // a data: URI for preview (see file-loader.js), and dumping that into a text
+    // field would be both unreadable and wrong to save. An inline-set background
+    // was never rewritten, so it's always safe to show and re-edit.
+    const inlineBgImage = extractCssUrl(el.style.backgroundImage);
+    const hasComputedBgImage = !inlineBgImage && getComputedStyle(el).backgroundImage !== 'none';
+    this.container.appendChild(
+      this._textField('Background image URL', inlineBgImage, (value) => {
+        this._applyStyle(uid, el, 'background-image', value ? `url("${value}")` : '');
+      })
+    );
+    if (hasComputedBgImage) {
+      const cssHint = document.createElement('p');
+      cssHint.className = 'sprout-inspector__empty';
+      cssHint.textContent = 'This section already has a background image set by the page\'s CSS — type a URL above to override it.';
+      this.container.appendChild(cssHint);
+    }
   }
 
   _renderSpacingSection(uid, el) {
@@ -289,4 +325,11 @@ function rgbToHex(color) {
   if (!match) return null;
   const [, r, g, b] = match;
   return `#${[r, g, b].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** Pulls the URL out of a CSS `url("...")`/`url('...')`/`url(...)` value, or '' if there isn't one. */
+function extractCssUrl(value) {
+  if (!value) return '';
+  const match = value.match(/url\(\s*["']?([^"')]+)["']?\s*\)/i);
+  return match ? match[1] : '';
 }
