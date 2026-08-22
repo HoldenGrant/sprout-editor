@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "fraunces",
+        "files": [
+          "docs/index.html"
+        ],
+        "createdAt": "2026-08-22T08:38:56.194Z",
+        "reason": "Deliberate typeface chosen earlier this session for the Sprout Editor marketing homepage's brand identity (sage/moss/terracotta palette + Fraunces, built with the frontend-design skill); already live in production, this turn only edited a line of body copy, not typography"
+      }
+    ]
+  }
+}
