@@ -36,7 +36,7 @@ export class Canvas {
   /**
    * Load preview HTML into the iframe (via srcdoc) and wire up interactions
    * once it's ready.
-   * @returns {Promise<{ hiddenPreloaderCount: number }>}
+   * @returns {Promise<{ hiddenPreloaderCount: number, revealedSlideCount: number }>}
    */
   load(previewHtml) {
     return new Promise((resolve) => {
@@ -46,7 +46,8 @@ export class Canvas {
         this._injectEditorStyles();
         this._wireInteractions();
         const hiddenPreloaderCount = this._autoHidePreloaders();
-        resolve({ hiddenPreloaderCount });
+        const revealedSlideCount = this._revealHiddenSlides();
+        resolve({ hiddenPreloaderCount, revealedSlideCount });
       };
       this.iframe.addEventListener('load', handleLoad);
       this.iframe.srcdoc = previewHtml;
@@ -93,6 +94,48 @@ export class Canvas {
     });
 
     return hiddenCount;
+  }
+
+  /**
+   * Carousels/sliders (Bootstrap Carousel's `.carousel-item`, Slick's
+   * `.slick-slide`, Swiper's `.swiper-slide`, Owl Carousel's `.owl-item`, and
+   * similarly-named custom ones) show exactly one slide and hide the rest,
+   * relying on JS the sandbox never runs to move which one is visible on
+   * click. Left alone, every slide but the first is permanently unreachable —
+   * not just unanimated, actually impossible to select or edit.
+   *
+   * Fix: force every element matching a known slide-item naming pattern to
+   * be visible and stacked in normal document flow (not absolutely
+   * positioned on top of each other), so the user can scroll to and edit
+   * every slide. This deliberately trades "looks like an animated carousel"
+   * for "every slide is actually reachable" — the right tradeoff for an
+   * editing tool. Preview-only, same as _autoHidePreloaders() above; the
+   * saved file's real carousel markup/behavior is completely untouched.
+   * @returns {number} how many slide elements were revealed
+   */
+  _revealHiddenSlides() {
+    const win = this.iframe.contentWindow;
+    if (!this.doc || !win) return 0;
+
+    const SLIDE_CLASS_PATTERN = /carousel-item|slick-slide|swiper-slide|owl-item|splide__slide|(^|[-_])slide($|[-_])/i;
+    let revealedCount = 0;
+
+    this.doc.querySelectorAll('body *').forEach((el) => {
+      const className = el.getAttribute('class') || '';
+      if (!SLIDE_CLASS_PATTERN.test(className)) return;
+
+      const computed = win.getComputedStyle(el);
+      if (computed.display === 'none' || computed.visibility === 'hidden') {
+        el.style.setProperty('display', 'block', 'important');
+        el.style.setProperty('visibility', 'visible', 'important');
+        el.style.setProperty('position', 'static', 'important');
+        el.style.setProperty('opacity', '1', 'important');
+        el.style.setProperty('transform', 'none', 'important');
+        revealedCount += 1;
+      }
+    });
+
+    return revealedCount;
   }
 
   _injectEditorStyles() {

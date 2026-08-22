@@ -133,7 +133,7 @@ async function loadFile(fileInfo) {
     const loaded = await loadGithubHtmlFile(fileInfo);
     state.sha = loaded.sha;
     state.originalHtml = loaded.originalHtml;
-    const { hiddenPreloaderCount } = await canvas.load(loaded.previewHtml);
+    const { hiddenPreloaderCount, revealedSlideCount } = await canvas.load(loaded.previewHtml);
     hideStatus();
 
     if (hiddenPreloaderCount > 0) {
@@ -141,6 +141,13 @@ async function loadFile(fileInfo) {
         'Hid a loading-screen overlay in the preview (its script never ran, since scripts are disabled for safety). Your saved file is unaffected.',
         'info',
         7000
+      );
+    }
+    if (revealedSlideCount > 0) {
+      showToast(
+        `Made every slide in a carousel/slider visible at once (the arrows won't do anything, since their script never runs) so you can scroll to and edit each one. Your saved file's carousel is unaffected.`,
+        'info',
+        8000
       );
     }
     if (loaded.editableCount === 0) {
