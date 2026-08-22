@@ -8,7 +8,8 @@ history — this file is the "state of the world right now" summary.
 
 The extension is fully functional and has been verified against the real
 `HoldenGrant/sprout` repo (a live child care business site): load, edit, undo/redo,
-save-as-commit, and now switch between files, all confirmed working end-to-end.
+save-as-commit, switch between files, browse/collapse the Layers panel, and edit
+section/div backgrounds — all confirmed working end-to-end.
 
 It is **not** on the Chrome Web Store yet — still `chrome://extensions` → Load unpacked
 only. See `docs/webstore/submission-checklist.md` for exactly what's left, and note that
@@ -24,13 +25,22 @@ failures on the real test repo, not hypothetically:
   — see the README's Setup section)
 - A stuck JS-driven loading-screen overlay, and a missing image with an `onerror`
   fallback — both on the actual `services.html` file
+- Two Bootstrap carousels and a Slick slider leaving every slide but the first
+  genuinely unreachable, not just unanimated — and the follow-up bug where the first
+  fix (`display`/`position` only) still left slides visually overlapping, since
+  Bootstrap's real mechanism is `float`/negative-`margin`, not absolute positioning
 - Plain-text `<div>`s not being detected as editable (found via a real template's
   `stat-label` divs)
+- Selecting a section/div in the Layers panel not showing anything in the Inspector —
+  root cause was containers having no uid at all, not a wiring bug; fixed by giving them
+  a real one, not by patching the symptom
 - The "Edit with Sprout" button not appearing at all on a fresh navigation, and
   separately, appearing then vanishing seconds later — two different root causes, both
-  fixed (see CHANGELOG "Fixed" section for 2026-08-22)
+  fixed
 - The device-flow sign-in code being generated correctly but never visually appearing
   (a CSS specificity bug)
+
+See `CHANGELOG.md` for the full list with technical detail on each.
 
 ## Open items
 
@@ -45,9 +55,12 @@ failures on the real test repo, not hypothetically:
 - **Branch-protected repos** — saving assumes a direct commit to the branch always
   succeeds; a repo requiring PR review would just fail the save with whatever error
   GitHub returns. No "create branch + open PR" fallback exists.
-- **Inline `background-image:url(...)` styles** aren't inlined for preview (documented
-  limitation — only `<link rel="stylesheet">`, `<img src>`, and CSS `url()` inside
-  fetched stylesheets are).
+- **Background images from an external CSS class** aren't shown/editable in the new
+  container background-image field (only an *inline* `style="background-image:..."` is
+  — reading the computed value would risk leaking a rewritten preview data: URI into the
+  field, see README's Architecture notes). A section styled that way shows a hint
+  instead of the actual value; typing a new URL still works, it just starts from blank
+  rather than the current one.
 
 ## Key decisions worth knowing before changing things
 
@@ -66,6 +79,16 @@ failures on the real test repo, not hypothetically:
   live (asset-URL-rewritten) preview DOM — see the top-of-file comment in
   `services/html-utils.js`. This is the single most load-bearing piece of the
   architecture; don't shortcut it even for a quick fix.
+- **Containers are editable (uid'd, in the save/undo pipeline) but never clickable in
+  canvas.** Resist the urge to "simplify" by wiring hover/click for them the same way as
+  text/button/image — that's exactly the every-`<div>`-is-clickable noise the leaf-only
+  smart-detection rule was designed to avoid. The Layers panel is the deliberate,
+  separate way in.
+- **`data-sprout-uid` and `data-sprout-layer-id` are intentionally two different
+  numbering schemes**, not one reused for both purposes — see the note at the top of
+  `editor/layers.js`. Collapsing them would either flood the editable-uid system with
+  every non-editable wrapper on the page, or leave the Layers tree unable to reference
+  anything that isn't independently editable.
 
 ## Reference material
 
