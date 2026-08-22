@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sprout Editor</title>
+  <style>
+    :root {
+      --sprout-green: #2ea043;
+      --sprout-green-dark: #1a7431;
+      --sprout-border: #e2e5e9;
+      --sprout-bg: #f6f8fa;
+      --sprout-text: #1f2328;
+      --sprout-text-muted: #5b6472;
+      --sprout-focus-ring: 0 0 0 3px rgba(46, 160, 67, 0.32);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #fff;
+      color: var(--sprout-text);
+    }
+    ::selection { background: #bfe8c8; color: var(--sprout-green-dark); }
+    a:focus-visible, button:focus-visible {
+      outline: none;
+      box-shadow: var(--sprout-focus-ring);
+      border-radius: 6px;
+    }
+
+    header {
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid var(--sprout-border);
+    }
+    h1 {
+      font-size: 15px;
+      margin: 0 0 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    header p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--sprout-text-muted);
+    }
+
+    .status {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 16px 18px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .status--connected { background: #eaf7ec; color: #1a7431; border: 1px solid #c9ecd0; }
+    .status--disconnected { background: var(--sprout-bg); color: var(--sprout-text-muted); border: 1px solid var(--sprout-border); }
+    .status--loading { background: var(--sprout-bg); color: var(--sprout-text-muted); border: 1px solid var(--sprout-border); }
+    .status__dot {
+      flex: none;
+      width: 8px;
+      height: 8px;
+      margin-top: 5px;
+      border-radius: 50%;
+    }
+    .status--connected .status__dot { background: var(--sprout-green); }
+    .status--disconnected .status__dot,
+    .status--loading .status__dot { background: #b6bcc4; }
+    .status__title { font-weight: 600; margin-bottom: 2px; }
+
+    .hint {
+      margin: 0 18px 16px;
+      font-size: 12px;
+      color: var(--sprout-text-muted);
+      line-height: 1.6;
+    }
+    .hint strong { color: var(--sprout-text); font-weight: 600; }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      padding: 12px 18px 16px;
+      border-top: 1px solid var(--sprout-border);
+    }
+    button, .btn-link {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 12.5px;
+      font-weight: 500;
+      font-family: inherit;
+      border-radius: 8px;
+      border: 1px solid var(--sprout-border);
+      background: #fff;
+      color: var(--sprout-text);
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: background 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+    }
+    button:hover, .btn-link:hover { background: var(--sprout-bg); border-color: #c7ced8; }
+    button.primary { background: var(--sprout-green); border-color: var(--sprout-green-dark); color: #fff; }
+    button.primary:hover { background: var(--sprout-green); filter: brightness(1.06); }
+    #disconnectBtn { display: none; flex: none; width: auto; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌱 Sprout Editor</h1>
+    <p>Visual editor for GitHub HTML files</p>
+  </header>
+
+  <div id="status" class="status status--loading">
+    <span class="status__dot" aria-hidden="true"></span>
+    <span id="statusText">Checking connection…</span>
+  </div>
+
+  <p class="hint">
+    Visit a <strong>.html</strong> file on GitHub and click
+    <strong>🌱 Edit with Sprout</strong> to start editing.
+  </p>
+
+  <div class="actions">
+    <button id="disconnectBtn" title="Disconnect this GitHub account">Disconnect</button>
+    <button id="settingsBtn" class="primary">Open Settings</button>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

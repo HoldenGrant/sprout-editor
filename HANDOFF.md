@@ -71,6 +71,14 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   every ~8 hours rather than a silent refresh, since refreshing requires a secret we
   don't have anywhere to hold. Current guidance if that comes up: leave that setting off
   rather than build a backend for it.
+- **The toolbar-icon popup never runs the OAuth device flow.** Chrome closes an
+  extension popup the instant focus leaves it, including when a link inside it opens a
+  new tab — which device flow requires (entering the code at `github.com/login/device`).
+  "Connect with GitHub" only lives on the Settings page (a real tab, immune to that),
+  which the popup links to rather than duplicating. Don't move that button into the
+  popup without solving the focus-loss problem first (e.g. moving the poll into the
+  background service worker) — it looks like a simple UI move but would silently break
+  a working, verified flow.
 - **The preview iframe never runs the site's own JavaScript**, deliberately (see
   `editor/canvas.js`'s sandbox comment) — this is what makes "Smart handling for
   script-dependent sites" in the README necessary, and it's a constraint worth keeping,

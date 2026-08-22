@@ -6,6 +6,13 @@ change landed in this repo.
 ## 2026-08-22
 
 ### Added
+- **Toolbar-icon popup** (`popup/popup.html`/`.js`) — clicking the Sprout Editor icon now
+  shows an at-a-glance connection status and an **Open Settings** button, instead of doing
+  nothing and requiring a right-click → Options. The popup deliberately doesn't run the
+  OAuth device flow itself — it would get closed by Chrome the moment its "enter this
+  code" link opened a new tab, silently killing the flow partway through — so "Connect
+  with GitHub" still lives only on the Settings page, which stays open regardless of
+  focus. (`manifest.json` `action.default_popup`)
 - **Layers panel** in the sidebar — an always-visible, Elementor-style tree of the whole
   page's DOM structure, synced bidirectionally with canvas selection. Every element gets
   a layer id (not just ones smart detection considers editable — structural wrapper

@@ -44,6 +44,8 @@ to `api.github.com` (Contents API) and `github.com` (OAuth device flow endpoints
 sprout-editor/
 ├── manifest.json
 ├── background/service-worker.js     # opens the editor tab, hands off file context
+├── popup/
+│   ├── popup.html/js                # toolbar-icon popup: connection status + Open Settings
 ├── content/
 │   ├── github-detector.js           # pure URL parsing, zero network calls
 │   ├── github-toolbar.js            # injects the "Edit with Sprout" button
@@ -75,8 +77,10 @@ site, not part of the loadable extension itself.)
    - Click **Load unpacked** → select this `sprout-editor` folder
 
 2. **Connect a GitHub account**
-   - Right-click the Sprout Editor icon → **Options** (or visit it via the prompt
-     Sprout Editor shows the first time you try to save)
+   - Click the Sprout Editor icon in the toolbar — a quick popup shows whether you're
+     connected. Click **Open Settings** from there (or visit it via the prompt Sprout
+     Editor shows the first time you try to save; right-click → **Options** still works
+     too).
    - Click **Connect with GitHub** — you'll get a short code and a link to
      `github.com/login/device`; enter the code there, pick which repos to allow, and
      you're done. No copy-pasting a token required.
@@ -225,3 +229,11 @@ patterns get handled anyway:
   resets `float`/`width`/`margin` too, not just the more obvious `display`/`visibility`/
   `position`/`opacity` — the first pass without that produced illegible overlapping
   text.
+- **The toolbar-icon popup deliberately doesn't run the OAuth device flow itself.**
+  Chrome closes an extension popup the instant focus leaves it — including when a link
+  inside it opens a new tab, which is exactly what device flow requires (the user has to
+  visit `github.com/login/device` in a new tab to enter the code). Running the flow in
+  the popup would silently abort it partway through the moment that tab opened. Settings
+  (`options/options.html`, opened in a real tab that isn't dismissed by losing focus) is
+  the only place "Connect with GitHub" lives; the popup (`popup/popup.js`) only reads
+  existing connection state and links out to Settings.
