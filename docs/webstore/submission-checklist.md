@@ -11,21 +11,15 @@ review queue, none of which I can do from here.
 - Pay the one-time $5 registration fee if you haven't already registered as a Chrome Web
   Store developer
 
-## 2. Host the privacy policy somewhere with a real URL
+## 2. Host the privacy policy somewhere with a real URL — ✅ done
 
-The Web Store requires a **live URL**, not a file — Google's review actually fetches it.
-Easiest options, roughly in order of effort:
-- **GitHub Pages**: push this repo to GitHub, enable Pages (Settings → Pages → deploy from
-  a branch), and the policy would live at e.g.
-  `https://holdengrant.github.io/sprout-editor/docs/webstore/privacy-policy.html`
-  (GitHub Pages serves Markdown as plain text by default — for it to render nicely, either
-  convert `privacy-policy.md` to a simple `.html` page, or enable Jekyll, which GitHub
-  Pages does automatically for repos with no custom build)
-- **Any other static host** you already use (Netlify, Vercel, etc.) — just needs a stable
-  public URL
-- I have **not** pushed this repo anywhere — per your standing rule, I only push when you
-  explicitly ask. Let me know when you're ready and I'll help prep whichever hosting path
-  you pick.
+Repo is pushed to <https://github.com/HoldenGrant/sprout-editor> (public, so Pages works
+on the free tier) and GitHub Pages is live, serving `/docs` from `main`. The privacy
+policy is up at:
+
+**<https://holdengrant.github.io/sprout-editor/webstore/privacy-policy.html>**
+
+Paste that URL into the Web Store dashboard's privacy policy field.
 
 ## 3. Real screenshots
 
