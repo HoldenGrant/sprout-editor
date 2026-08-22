@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprout Editor — Edit any GitHub site by clicking on it</title>
+<meta name="description" content="Sprout Editor is a Chrome extension that adds a visual, point-and-click editor to GitHub HTML files. No code editor, no local setup — click text, swap images, save as a commit." />
+<link rel="icon" href="assets/icons/icon48.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6F8F1;
+    --paper-deep: #EEF1E6;
+    --card: #FFFFFF;
+    --ink: #1C2E22;
+    --ink-soft: #4B5D4F;
+    --moss: #2F6B45;
+    --moss-deep: #1F4A30;
+    --terracotta: #C1602E;
+    --marigold: #E3A23A;
+    --line: #DDE3D3;
+    --radius: 16px;
+    --serif: "Fraunces", ui-serif, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img, svg { max-width: 100%; display: block; }
+
+  a { color: inherit; }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; margin: 0; color: var(--ink); }
+
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--moss);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn--primary { background: var(--moss); color: #fff; box-shadow: 0 4px 14px rgba(31,74,48,0.25); }
+  .btn--primary:hover { filter: brightness(1.07); }
+  .btn--ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn--ghost:hover { border-color: var(--moss); color: var(--moss-deep); }
+
+  /* ---------- Nav ---------- */
+
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(246, 248, 241, 0.88);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 19px;
+    text-decoration: none;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .nav-links a:not(.btn) { text-decoration: none; color: var(--ink-soft); }
+  .nav-links a:not(.btn):hover { color: var(--moss-deep); }
+  .nav-links .btn { padding: 9px 18px; font-size: 14px; }
+
+  /* ---------- Hero ---------- */
+
+  .hero {
+    padding: 76px 0 64px;
+  }
+  .hero .wrap {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .hero h1 {
+    font-size: clamp(34px, 4.6vw, 54px);
+    line-height: 1.08;
+    margin: 14px 0 20px;
+    letter-spacing: -0.01em;
+  }
+  .hero p.lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    margin: 0 0 30px;
+  }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .hero-art {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-art svg { width: 100%; height: auto; max-width: 360px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-sway { animation: sway 6s ease-in-out infinite alternate; transform-origin: 50% 92%; }
+  }
+  @keyframes sway {
+    from { transform: rotate(-1.5deg); }
+    to   { transform: rotate(1.5deg); }
+  }
+
+  /* ---------- Promise strip ---------- */
+
+  .promise {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-deep);
+  }
+  .promise .wrap {
+    padding: 30px 28px;
+    text-align: center;
+    font-family: var(--serif);
+    font-size: clamp(18px, 2.4vw, 24px);
+    color: var(--moss-deep);
+  }
+  .promise em { font-style: italic; color: var(--terracotta); }
+
+  /* ---------- Section shell ---------- */
+
+  section { padding: 88px 0; }
+  .section-head { max-width: 56ch; margin-bottom: 48px; }
+  .section-head h2 { font-size: clamp(26px, 3.2vw, 34px); margin: 10px 0 14px; }
+  .section-head p { color: var(--ink-soft); font-size: 16px; margin: 0; }
+
+  /* ---------- Growth stages ---------- */
+
+  .stages {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+  .stage-card {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px 20px 24px;
+    text-align: left;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .stage-card.is-visible { opacity: 1; transform: translateY(0); }
+  .stage-icon { width: 40px; height: 40px; margin-bottom: 14px; }
+  .stage-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 6px;
+  }
+  .stage-card h3 { font-size: 18px; margin-bottom: 6px; }
+  .stage-card p { font-size: 14px; color: var(--ink-soft); margin: 0; }
+  .sprig { flex: 0 0 auto; width: 44px; display: flex; align-items: center; justify-content: center; }
+  .sprig svg { width: 40px; height: 32px; }
+
+  @media (max-width: 860px) {
+    .stages { flex-direction: column; }
+    .sprig { width: auto; height: 32px; }
+    .sprig svg { transform: rotate(90deg); width: 28px; height: 22px; margin: 0 auto; }
+  }
+
+  /* ---------- Feature grid ---------- */
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .feature {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .feature h3 { font-size: 16px; margin-bottom: 8px; font-family: var(--sans); font-weight: 700; }
+  .feature p { font-size: 14px; color: var(--ink-soft); margin: 0; }
+  .feature .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--moss); margin-bottom: 14px; }
+
+  @media (max-width: 700px) { .features { grid-template-columns: 1fr; } }
+
+  /* ---------- Product diagram (uses the REAL product's own colors) ---------- */
+
+  .diagram-shell {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 24px 60px rgba(28,46,34,0.08);
+  }
+  .diagram {
+    --p-green: #2ea043;
+    --p-bg: #f6f8fa;
+    --p-panel: #ffffff;
+    --p-border: #e2e5e9;
+    border: 1px solid var(--p-border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: var(--sans);
+  }
+  .diagram-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--p-panel);
+    border-bottom: 1px solid var(--p-border);
+    font-size: 12px;
+  }
+  .diagram-toolbar .brand { font-weight: 700; }
+  .diagram-toolbar .save {
+    background: var(--p-green);
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-weight: 600;
+  }
+  .diagram-body { display: grid; grid-template-columns: 110px 1fr 150px; min-height: 220px; }
+  .diagram-col { padding: 14px 12px; font-size: 11px; }
+  .diagram-sidebar { background: var(--p-panel); border-right: 1px solid var(--p-border); color: #6b7280; }
+  .diagram-sidebar .item { padding: 5px 0; }
+  .diagram-canvas { background: var(--p-bg); position: relative; padding: 20px; }
+  .diagram-canvas .block { background: #fff; border-radius: 8px; padding: 10px 12px; font-size: 12px; margin-bottom: 10px; border: 1px solid var(--p-border); }
+  .diagram-canvas .selected { outline: 2px solid var(--p-green); outline-offset: 2px; }
+  .diagram-inspector { background: var(--p-panel); border-left: 1px solid var(--p-border); color: #374151; }
+  .diagram-inspector .field-label { font-weight: 700; font-size: 10px; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; }
+  .diagram-inspector .field { border: 1px solid var(--p-border); border-radius: 6px; padding: 5px 7px; font-size: 11px; color: #1f2328; }
+
+  .callouts { margin-top: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .callout { font-size: 13px; color: var(--ink-soft); }
+  .callout .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--moss); color: #fff; font-size: 11px; font-weight: 700;
+    margin-right: 8px;
+  }
+
+  @media (max-width: 760px) {
+    .diagram-body { grid-template-columns: 1fr; }
+    .diagram-sidebar, .diagram-inspector { display: none; }
+    .callouts { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Get started ---------- */
+
+  .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; max-width: 640px; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 4px 0 26px 44px;
+    border-left: 2px solid var(--line);
+    margin-left: 13px;
+  }
+  .steps li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: -13px;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--moss);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .steps h3 { font-size: 16px; font-family: var(--sans); font-weight: 700; margin-bottom: 4px; }
+  .steps p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .steps code {
+    background: var(--paper-deep);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 13px;
+  }
+  .note {
+    margin-top: 28px;
+    padding: 14px 18px;
+    background: var(--paper-deep);
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    max-width: 640px;
+  }
+
+  /* ---------- FAQ ---------- */
+
+  .faq { max-width: 720px; }
+  .faq-item { border-bottom: 1px solid var(--line); padding: 20px 0; }
+  .faq-item:first-child { padding-top: 0; }
+  .faq-item h3 { font-size: 16px; font-family: var(--sans); font-weight: 700; margin-bottom: 8px; }
+  .faq-item p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+  /* ---------- Footer ---------- */
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0; }
+  footer .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--moss-deep); }
+  .footer-links { display: flex; gap: 20px; }
+
+  @media (max-width: 860px) {
+    .hero .wrap { grid-template-columns: 1fr; }
+    .hero-art { order: -1; }
+    .hero-art svg { max-width: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="wordmark" href="#top">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#2F6B45"/><path d="M12 17V11" stroke="#F6F8F1" stroke-width="2" stroke-linecap="round"/><ellipse cx="9" cy="9.5" rx="3.6" ry="2.4" fill="#F6F8F1"/><ellipse cx="15" cy="8.2" rx="3.6" ry="2.4" fill="#F6F8F1"/></svg>
+      Sprout Editor
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#start">Get started</a>
+      <a class="btn btn--ghost" href="https://github.com/HoldenGrant/sprout-editor" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">A Chrome extension for GitHub</span>
+      <h1>Edit any GitHub page by clicking on it.</h1>
+      <p class="lede">Sprout Editor turns a plain HTML file on GitHub into something you can point at and change — text, images, buttons, colors — no code editor, no local setup. Save it, and it lands as a real commit.</p>
+      <div class="hero-actions">
+        <a class="btn btn--primary" href="#start">Get started →</a>
+        <a class="btn btn--ghost" href="#how">See how it works</a>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg class="hero-sway" viewBox="0 0 320 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="160" cy="330" rx="120" ry="14" fill="#DDE3D3"/>
+        <path d="M160 330 C160 250 150 200 160 140" stroke="#1F4A30" stroke-width="7" stroke-linecap="round"/>
+        <path d="M160 210 C120 200 95 175 88 140 C130 140 158 165 160 210Z" fill="#2F6B45"/>
+        <path d="M160 175 C205 162 232 132 238 96 C193 100 165 128 160 175Z" fill="#3E8A5B"/>
+        <path d="M160 140 C150 110 152 78 160 52" stroke="#1F4A30" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="160" cy="48" r="22" fill="#E3A23A"/>
+        <circle cx="160" cy="48" r="8" fill="#C1602E"/>
+        <path d="M40 340 C90 320 230 320 280 340" stroke="#DDE3D3" stroke-width="3" fill="none"/>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<div class="promise">
+  <div class="wrap">From <em>a plain HTML file</em> to a page anyone on the team can update themselves.</div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>Four stages, same as anything that grows.</h2>
+      <p>Sprout Editor follows a page from a raw file to a saved change — nothing skipped, nothing hidden.</p>
+    </div>
+
+    <div class="stages" id="stagesRow">
+      <div class="stage-card">
+        <svg class="stage-icon" viewBox="0 0 40 40" fill="none"><ellipse cx="20" cy="24" rx="9" ry="12" fill="#C1602E"/><path d="M14 20c2-3 8-3 10 0" stroke="#8C471F" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <div class="stage-label">Seed</div>
+        <h3>Find the page</h3>
+        <p>Open any <code>.html</code> file on GitHub. Sprout Editor recognizes it and adds an Edit button.</p>
+      </div>
+
+      <div class="sprig" aria-hidden="true"><svg viewBox="0 0 40 32"><path d="M2 16c10-10 26-10 36 0" stroke="#DDE3D3" stroke-width="2.5" fill="none" stroke-dasharray="1 6" stroke-linecap="round"/></svg></div>
+
+      <div class="stage-card">
+        <svg class="stage-icon" viewBox="0 0 40 40" fill="none"><path d="M20 34V20" stroke="#1F4A30" stroke-width="3" stroke-linecap="round"/><path d="M20 22c-3-6-1-11 0-14" stroke="#1F4A30" stroke-width="2.5" stroke-linecap="round" fill="none"/><ellipse cx="20" cy="9" rx="6" ry="4.2" fill="#2F6B45"/><ellipse cx="20" cy="30" rx="8" ry="4" fill="#C1602E" opacity="0.35"/></svg>
+        <div class="stage-label">Sprout</div>
+        <h3>Open the editor</h3>
+        <p>Click 🌱 Edit with Sprout. Your page loads in a live preview — safe, isolated, nothing on it can run code.</p>
+      </div>
+
+      <div class="sprig" aria-hidden="true"><svg viewBox="0 0 40 32"><path d="M2 20c10-14 26-14 36 0" stroke="#DDE3D3" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
+
+      <div class="stage-card">
+        <svg class="stage-icon" viewBox="0 0 40 40" fill="none"><path d="M20 36V16" stroke="#1F4A30" stroke-width="3" stroke-linecap="round"/><path d="M20 22c-9-1-14-6-16-13 9 0 15 4 16 13Z" fill="#2F6B45"/><path d="M20 18c9-2 13-8 14-15 -9 1-13 6-14 15Z" fill="#3E8A5B"/></svg>
+        <div class="stage-label">Leaf</div>
+        <h3>Click and edit</h3>
+        <p>Select any heading, button, or image. Change the text, the link, the color, the size.</p>
+      </div>
+
+      <div class="sprig" aria-hidden="true"><svg viewBox="0 0 40 32"><path d="M2 20c10-14 26-14 36 0" stroke="#DDE3D3" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
+
+      <div class="stage-card">
+        <svg class="stage-icon" viewBox="0 0 40 40" fill="none"><path d="M20 36V18" stroke="#1F4A30" stroke-width="3" stroke-linecap="round"/><path d="M20 24c-9-1-14-6-16-13 9 0 15 4 16 13Z" fill="#2F6B45"/><path d="M20 20c9-2 13-8 14-15 -9 1-13 6-14 15Z" fill="#3E8A5B"/><circle cx="20" cy="10" r="7" fill="#E3A23A"/><circle cx="20" cy="10" r="2.6" fill="#C1602E"/></svg>
+        <div class="stage-label">Bloom</div>
+        <h3>Save it</h3>
+        <p>Click Save to GitHub. Your change becomes a real commit, on the branch it came from.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="background:var(--paper-deep); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Why it's safe to hand off</span>
+      <h2>Built so nothing happens by accident.</h2>
+    </div>
+    <div class="features">
+      <div class="feature"><div class="dot"></div><h3>Nothing runs but what you click</h3><p>The preview is sandboxed — the page's own scripts never execute. What you see is layout and content only.</p></div>
+      <div class="feature"><div class="dot"></div><h3>Sign in with GitHub</h3><p>OAuth device flow, no pasting tokens. You choose exactly which repositories to share, and can revoke access anytime.</p></div>
+      <div class="feature"><div class="dot"></div><h3>Finds text on its own</h3><p>Headings, paragraphs, buttons, and images are detected automatically — site owners can mark extra elements explicitly, too.</p></div>
+      <div class="feature"><div class="dot"></div><h3>Undo goes all the way back</h3><p>Every text, link, and style change is tracked. Nothing saves until you click Save and confirm a commit message.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="diagram">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">What you'll see</span>
+      <h2>A real editor, not a code view.</h2>
+      <p>This is the actual layout — a toolbar, an element list, a live preview in the middle, and an inspector on the right for whatever you've selected.</p>
+    </div>
+
+    <div class="diagram-shell">
+      <div class="diagram">
+        <div class="diagram-toolbar">
+          <span class="brand">🌱 Sprout Editor &nbsp; <span style="color:#6b7280; font-weight:400;">index.html</span></span>
+          <span class="save">Save to GitHub</span>
+        </div>
+        <div class="diagram-body">
+          <div class="diagram-col diagram-sidebar">
+            <div style="font-weight:700; color:#1f2328; margin-bottom:6px;">ELEMENTS</div>
+            <div class="item">🏔️ Hero</div>
+            <div class="item">🧭 Navigation</div>
+            <div class="item">🖼️ Images</div>
+            <div class="item">🔘 Buttons</div>
+          </div>
+          <div class="diagram-col diagram-canvas">
+            <div class="block">Welcome to our clinic</div>
+            <div class="block selected">Book a visit →</div>
+            <div class="block" style="width:60%;">Photo</div>
+          </div>
+          <div class="diagram-col diagram-inspector">
+            <div style="font-weight:700; color:#1f2328;">INSPECTOR</div>
+            <div class="field-label">Text</div>
+            <div class="field">Book a visit →</div>
+            <div class="field-label">Background color</div>
+            <div class="field">■ #2ea043</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callouts">
+        <div class="callout"><span class="num">1</span>Pick a category, or just hover the preview.</div>
+        <div class="callout"><span class="num">2</span>Click anything outlined — that's what's editable.</div>
+        <div class="callout"><span class="num">3</span>Change it here. It updates live, right next to it.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="start" style="background:var(--paper-deep); border-top:1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Get started</span>
+      <h2>Two minutes, no Chrome Web Store yet.</h2>
+      <p>Sprout Editor isn't published to the Web Store just yet — installing it manually takes about as long as reading this.</p>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <h3>Download the extension</h3>
+        <p>Clone or download the <a href="https://github.com/HoldenGrant/sprout-editor" target="_blank" rel="noopener" style="color:var(--moss-deep);">sprout-editor repository</a> from GitHub.</p>
+      </li>
+      <li>
+        <h3>Open Chrome's extensions page</h3>
+        <p>Go to <code>chrome://extensions</code> and turn on <strong>Developer mode</strong> (top right).</p>
+      </li>
+      <li>
+        <h3>Load it</h3>
+        <p>Click <strong>Load unpacked</strong>, and select the <code>sprout-editor</code> folder you downloaded.</p>
+      </li>
+      <li>
+        <h3>Connect GitHub</h3>
+        <p>Open the extension's Options page and click <strong>Connect with GitHub</strong> — no tokens to copy or paste.</p>
+      </li>
+      <li>
+        <h3>Try it</h3>
+        <p>Open any <code>.html</code> file on GitHub and click <strong>🌱 Edit with Sprout</strong>.</p>
+      </li>
+    </ol>
+
+    <div class="note">A Chrome Web Store listing is on the way — once it's live, this becomes a one-click install. Until then, the manual load works exactly the same way.</div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Questions</span>
+      <h2>Before you install</h2>
+    </div>
+    <div class="faq">
+      <div class="faq-item"><h3>Does this work on any GitHub repo?</h3><p>Public or private, as long as you connect the GitHub account that has access to it.</p></div>
+      <div class="faq-item"><h3>Will it break my site's JavaScript?</h3><p>No. The preview itself doesn't run your page's scripts — that's what keeps editing safe. What gets saved is your real, untouched code with just your edits applied on top.</p></div>
+      <div class="faq-item"><h3>Is my GitHub token safe?</h3><p>It's stored only on your device, and only Sprout Editor ever reads it. There's no backend server — every request goes straight from your browser to GitHub.</p></div>
+      <div class="faq-item"><h3>What if a site uses a JavaScript-driven loading screen or fancy layout tool?</h3><p>Sprout Editor works best on plain HTML/CSS sites and template-based pages. Sites that build their whole layout with JavaScript may not preview accurately.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>🌱 Sprout Editor — open source, built by <a href="https://github.com/HoldenGrant" target="_blank" rel="noopener">Holden Grant</a>.</span>
+    <div class="footer-links">
+      <a href="https://github.com/HoldenGrant/sprout-editor" target="_blank" rel="noopener">GitHub</a>
+      <a href="webstore/privacy-policy.html">Privacy Policy</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Stagger the growth-stage cards in as they scroll into view. Respects
+  // reduced-motion by just... not needing to do anything extra — the CSS
+  // transition duration is short enough (0.5s) that we don't gate this
+  // separately, but we do skip the stagger delay entirely if requested.
+  const stageCards = document.querySelectorAll('.stage-card');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        const delay = reduceMotion ? 0 : i * 90;
+        setTimeout(() => entry.target.classList.add('is-visible'), delay);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  stageCards.forEach((card) => observer.observe(card));
+</script>
+
+</body>
+</html>
