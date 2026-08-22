@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprout Editor — Privacy Policy</title>
+<style>
+  body {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1f2328;
+    line-height: 1.6;
+    background: #ffffff;
+  }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .updated { color: #6b7280; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 18px; margin-top: 36px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #e2e5e9; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #f6f8fa; }
+  code { background: #f6f8fa; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  a { color: #1a7431; }
+  .brand { font-size: 15px; font-weight: 600; color: #2ea043; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="brand">🌱 Sprout Editor</div>
+<h1>Privacy Policy</h1>
+<p class="updated">Last updated: August 22, 2026</p>
+
+<p>Sprout Editor is a Chrome extension that lets you visually edit an HTML file stored in a
+GitHub repository and save the result back as a commit. This policy explains exactly what
+data the extension touches, where it goes, and what it doesn't do.</p>
+
+<h2>What Sprout Editor accesses</h2>
+<ul>
+  <li><strong>The GitHub file you choose to edit.</strong> When you click "Edit with
+    Sprout" on a GitHub <code>.html</code>/<code>.htm</code> file page, the extension
+    fetches that file's content, and any local CSS/image files it references, directly
+    from GitHub's API (<code>api.github.com</code>) so it can render an editable preview.</li>
+  <li><strong>Your GitHub identity, if you connect an account.</strong> Signing in
+    ("Connect with GitHub") uses GitHub's standard OAuth Device Flow. This confirms your
+    GitHub username and issues an access token scoped to the repositories you explicitly
+    choose to grant access to during that sign-in.</li>
+</ul>
+<p>Sprout Editor only activates on <code>github.com</code> pages that match a specific HTML
+file URL pattern. It does not read, collect, or transmit anything from any other website
+you visit.</p>
+
+<h2>What Sprout Editor stores</h2>
+<ul>
+  <li><strong>A GitHub access token</strong>, saved only in your browser's local extension
+    storage (<code>chrome.storage.local</code>) on your own device.</li>
+  <li><strong>Nothing else.</strong> No edit history, file contents, or browsing activity
+    is retained beyond the current editing session in the extension's own tab.</li>
+</ul>
+
+<h2>What Sprout Editor never does</h2>
+<ul>
+  <li>It does not operate any server of its own. There is no backend — every network
+    request the extension makes goes directly from your browser to <code>github.com</code>
+    or <code>api.github.com</code>.</li>
+  <li>It does not use analytics, tracking pixels, or crash reporting of any kind.</li>
+  <li>It does not share, sell, or transmit your data to any third party.</li>
+  <li>It does not display ads.</li>
+  <li>Your GitHub access token is never written into source code, logged, or sent anywhere
+    other than GitHub's own API.</li>
+</ul>
+
+<h2>Permissions this extension requests, and why</h2>
+<table>
+  <tr><th>Permission</th><th>Why it's needed</th></tr>
+  <tr>
+    <td><code>storage</code></td>
+    <td>To save your GitHub access token locally so you don't have to reconnect every time.</td>
+  </tr>
+  <tr>
+    <td>Host access to <code>github.com</code></td>
+    <td>To detect supported file pages and inject the "Edit with Sprout" button, and to
+      complete GitHub's OAuth Device Flow sign-in.</td>
+  </tr>
+  <tr>
+    <td>Host access to <code>api.github.com</code></td>
+    <td>To read the file (and its local assets) you're editing, and to save your changes
+      back as a commit.</td>
+  </tr>
+</table>
+
+<h2>Your control over access</h2>
+<p>You choose exactly which repositories Sprout Editor can access when you install the
+companion GitHub App during sign-in — you can review or revoke this at any time from
+<a href="https://github.com/settings/installations">github.com/settings/installations</a>.
+Removing the saved token from the extension's Options page (or uninstalling the extension)
+deletes all locally stored data immediately.</p>
+
+<h2>Changes to this policy</h2>
+<p>If this policy changes, the updated version will be published at this same URL with a
+new "Last updated" date.</p>
+
+<h2>Contact</h2>
+<p>Questions about this policy can be directed to the developer via the
+<a href="https://github.com/HoldenGrant/sprout-editor">GitHub repository</a> this
+extension is published from.</p>
+
+</body>
+</html>
