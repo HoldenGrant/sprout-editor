@@ -314,7 +314,7 @@ function clearDirty() {
 
 async function handleSaveClick() {
   if (!(await hasToken())) {
-    showToast('Add a GitHub Personal Access Token in Sprout Editor’s options before saving.', 'error', 6000);
+    showToast('Connect a GitHub account in Sprout Editor’s options before saving.', 'error', 6000);
     chrome.runtime.openOptionsPage();
     return;
   }

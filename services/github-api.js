@@ -107,8 +107,12 @@ async function toApiError(response, fallbackMessage) {
   }
 
   if (response.status === 401 || response.status === 403) {
+    // Message is deliberately connection-method-agnostic ("your GitHub
+    // connection", not "Personal Access Token") — the user may have
+    // connected via either the OAuth device flow or a pasted PAT, and a
+    // stale reference to the wrong one is confusing either way.
     return new GitHubAuthError(
-      `GitHub rejected the request — check your Personal Access Token in the Sprout Editor options page.${detail}`,
+      `GitHub rejected the request (invalid or expired credentials). Reconnect in the Sprout Editor options page.${detail}`,
       response.status
     );
   }
@@ -119,8 +123,8 @@ async function toApiError(response, fallbackMessage) {
     // toward the actual likely fix instead of a bare "Not found."
     const tokenConfigured = await hasToken();
     const hint = tokenConfigured
-      ? 'If this is a private repository, make sure your GitHub token in Sprout Editor’s options has access to it.'
-      : 'If this is a private repository, add a GitHub Personal Access Token in Sprout Editor’s options (⋮ menu → Options) — GitHub reports private files as "not found" to anyone without access.';
+      ? 'If this is a private repository, make sure your GitHub connection in Sprout Editor’s options has access to it.'
+      : 'If this is a private repository, connect a GitHub account in Sprout Editor’s options (⋮ menu → Options) — GitHub reports private files as "not found" to anyone without access.';
     return new GitHubApiError(`Not found.${detail} ${fallbackMessage} ${hint}`, 404);
   }
   return new GitHubApiError(`${fallbackMessage}${detail}`, response.status);
