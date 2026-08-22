@@ -207,6 +207,17 @@ textarea:focus-visible,
   min-height: 0;
 }
 
+/* Preview mode: both sidebars are editing chrome (categories, Layers,
+ * Inspector fields) that does nothing while canvas clicks are inert — hide
+ * them and give the canvas the full width. */
+.sprout-body.sprout-preview-active {
+  grid-template-columns: 1fr;
+}
+.sprout-body.sprout-preview-active .sprout-sidebar,
+.sprout-body.sprout-preview-active .sprout-inspector {
+  display: none;
+}
+
 .sprout-sidebar,
 .sprout-inspector {
   background: var(--sprout-panel-bg);

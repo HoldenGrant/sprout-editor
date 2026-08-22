@@ -92,6 +92,10 @@ change landed in this repo.
   messages now proactively suggest checking/adding a GitHub connection.
 
 ### Changed
+- **Preview mode now hides both sidebars, not just the hover/selection outlines.**
+  Element categories, Layers, and Inspector fields all do nothing useful while canvas
+  clicks are inert in preview mode — leaving them up was just unusable UI taking up
+  space. The canvas now takes the full width instead; Exit Preview restores both.
 - **Layers tree starts collapsed below the top level.** Full-depth expansion on load
   was overwhelming on any real page — only direct children of `<body>` now start open;
   everything deeper opens on click, or automatically when canvas selection lands inside

@@ -29,6 +29,11 @@ Visual canvas — click any text, button, or image to edit it
 "Save to GitHub" → commits the updated file back to the same branch
 ```
 
+Use **Preview** (top toolbar) any time to see roughly what a visitor would see — it hides
+the hover/selection outlines and both sidebars (nothing in them does anything while
+canvas clicks are inert) and gives the canvas the full width. **Exit Preview** brings both
+back exactly as they were.
+
 See `manifest.json` for the extension's permission footprint: `storage`, plus host access
 to `api.github.com` (Contents API) and `github.com` (OAuth device flow endpoints only —
 `/login/device/code` and `/login/oauth/access_token`).

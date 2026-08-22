@@ -21,6 +21,7 @@ import { HistoryStack, attachHistoryKeyboardShortcuts } from './history.js';
 // ---------- DOM references ----------
 
 const els = {
+  editorBody: document.getElementById('editorBody'),
   fileSwitcher: document.getElementById('fileSwitcher'),
   dirtyIndicator: document.getElementById('dirtyIndicator'),
   undoBtn: document.getElementById('undoBtn'),
@@ -391,6 +392,11 @@ function wireToolbar() {
     // editor.css) — only the text label needs updating here.
     els.previewBtn.classList.toggle('is-active', enteringPreview);
     els.previewBtnLabel.textContent = enteringPreview ? 'Exit Preview' : 'Preview';
+    // Both sidebars are pure editing chrome (element categories, Layers,
+    // Inspector fields) — nothing in them does anything useful while clicks
+    // in the canvas are inert, so hide them and let the canvas take the
+    // full width for an actual "what a visitor sees" view.
+    els.editorBody.classList.toggle('sprout-preview-active', enteringPreview);
   });
   els.saveBtn.addEventListener('click', handleSaveClick);
 }
