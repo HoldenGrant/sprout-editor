@@ -274,10 +274,13 @@
     border-radius: 7px;
     font-weight: 600;
   }
-  .diagram-body { display: grid; grid-template-columns: 110px 1fr 150px; min-height: 220px; }
+  .diagram-body { display: grid; grid-template-columns: 132px 1fr 150px; min-height: 220px; }
   .diagram-col { padding: 14px 12px; font-size: 11px; }
   .diagram-sidebar { background: var(--p-panel); border-right: 1px solid var(--p-border); color: #6b7280; }
   .diagram-sidebar .item { padding: 5px 0; }
+  .diagram-layers-title { margin: 14px 0 4px; padding-top: 10px; border-top: 1px solid var(--p-border); }
+  .diagram-layer-row { padding: 3px 0; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 10.5px; }
+  .diagram-layer-row.is-active { color: var(--p-green); font-weight: 600; }
   .diagram-canvas { background: var(--p-bg); position: relative; padding: 20px; }
   .diagram-canvas .block { background: #fff; border-radius: 8px; padding: 10px 12px; font-size: 12px; margin-bottom: 10px; border: 1px solid var(--p-border); }
   .diagram-canvas .selected { outline: 2px solid var(--p-green); outline-offset: 2px; }
@@ -285,7 +288,7 @@
   .diagram-inspector .field-label { font-weight: 700; font-size: 10px; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; }
   .diagram-inspector .field { border: 1px solid var(--p-border); border-radius: 6px; padding: 5px 7px; font-size: 11px; color: #1f2328; }
 
-  .callouts { margin-top: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .callouts { margin-top: 18px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .callout { font-size: 13px; color: var(--ink-soft); }
   .callout .num {
     display: inline-flex; align-items: center; justify-content: center;
@@ -481,6 +484,8 @@
       <div class="feature"><div class="dot"></div><h3>Sign in with GitHub</h3><p>OAuth device flow, no pasting tokens. You choose exactly which repositories to share, and can revoke access anytime.</p></div>
       <div class="feature"><div class="dot"></div><h3>Finds text on its own</h3><p>Headings, paragraphs, buttons, and images are detected automatically — site owners can mark extra elements explicitly, too.</p></div>
       <div class="feature"><div class="dot"></div><h3>Undo goes all the way back</h3><p>Every text, link, and style change is tracked. Nothing saves until you click Save and confirm a commit message.</p></div>
+      <div class="feature"><div class="dot"></div><h3>See the whole page at once</h3><p>A collapsible Layers tree shows every section on the page — click any one, including backgrounds you can't reach any other way, to jump straight to it.</p></div>
+      <div class="feature"><div class="dot"></div><h3>Switch files without losing your place</h3><p>Pick a different .html file from the toolbar dropdown any time — no need to go back to GitHub and click through again.</p></div>
     </div>
   </div>
 </section>
@@ -490,7 +495,7 @@
     <div class="section-head">
       <span class="eyebrow">What you'll see</span>
       <h2>A real editor, not a code view.</h2>
-      <p>This is the actual layout — a toolbar, an element list, a live preview in the middle, and an inspector on the right for whatever you've selected.</p>
+      <p>This is the actual layout — element categories and a collapsible Layers tree on the left, a live preview in the middle, and an inspector on the right for whatever you've selected.</p>
     </div>
 
     <div class="diagram-shell">
@@ -506,6 +511,13 @@
             <div class="item">🧭 Navigation</div>
             <div class="item">🖼️ Images</div>
             <div class="item">🔘 Buttons</div>
+
+            <div class="diagram-layers-title" style="font-weight:700; color:#1f2328;">LAYERS</div>
+            <div class="diagram-layer-row">▾ section</div>
+            <div class="diagram-layer-row" style="padding-left:12px;">div</div>
+            <div class="diagram-layer-row is-active" style="padding-left:24px;">a "Book a visit"</div>
+            <div class="diagram-layer-row" style="padding-left:12px;">div</div>
+            <div class="diagram-layer-row" style="padding-left:24px;">img</div>
           </div>
           <div class="diagram-col diagram-canvas">
             <div class="block">Welcome to our clinic</div>
@@ -523,9 +535,10 @@
       </div>
 
       <div class="callouts">
-        <div class="callout"><span class="num">1</span>Pick a category, or just hover the preview.</div>
+        <div class="callout"><span class="num">1</span>Pick a category, hover the preview, or browse the Layers tree.</div>
         <div class="callout"><span class="num">2</span>Click anything outlined — that's what's editable.</div>
         <div class="callout"><span class="num">3</span>Change it here. It updates live, right next to it.</div>
+        <div class="callout"><span class="num">4</span>Selecting a section shows background color and image, too.</div>
       </div>
     </div>
   </div>
