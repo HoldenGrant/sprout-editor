@@ -66,12 +66,14 @@
     const button = createButton(fileInfo);
 
     if (target) {
+      console.log('[Sprout] injected into GitHub toolbar', fileInfo);
       target.prepend(button);
       return;
     }
 
     // Fallback: GitHub's DOM didn't match any known selector. Show a floating
     // button instead of silently failing.
+    console.log('[Sprout] no toolbar target found, using floating fallback', fileInfo);
     const container = document.createElement('div');
     container.id = 'sprout-floating-container';
     container.appendChild(button);
@@ -90,11 +92,13 @@
   function ensureButtonPresent() {
     if (!currentFileInfo) return;
     if (!document.getElementById(BUTTON_ID)) {
+      console.log('[Sprout] button missing from DOM, re-injecting', currentFileInfo);
       injectButton(currentFileInfo);
     }
   }
 
   window.SproutDetector.observeGithubNavigation((fileInfo) => {
+    console.log('[Sprout] navigation detected, fileInfo =', fileInfo);
     currentFileInfo = fileInfo;
     if (fileInfo) {
       injectButton(fileInfo);
@@ -104,4 +108,5 @@
   });
 
   setInterval(ensureButtonPresent, 800);
+  console.log('[Sprout] github-toolbar.js loaded and watching');
 })();
