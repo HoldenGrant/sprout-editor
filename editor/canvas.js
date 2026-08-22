@@ -104,18 +104,25 @@ export class Canvas {
    * click. Left alone, every slide but the first is permanently unreachable —
    * not just unanimated, actually impossible to select or edit.
    *
-   * Fix: force every element matching a known slide-item naming pattern to
-   * be visible and stacked in normal document flow (not absolutely
-   * positioned on top of each other), so the user can scroll to and edit
-   * every slide. This deliberately trades "looks like an animated carousel"
-   * for "every slide is actually reachable" — the right tradeoff for an
-   * editing tool. Preview-only, same as _autoHidePreloaders() above; the
-   * saved file's real carousel markup/behavior is completely untouched.
-   * @returns {number} how many slide elements were revealed
+   * Fix: force every element matching a known slide-item naming pattern into
+   * plain vertical document flow, so the user can scroll to and edit every
+   * slide. This deliberately trades "looks like an animated carousel" for
+   * "every slide is actually reachable" — the right tradeoff for an editing
+   * tool. Preview-only, same as _autoHidePreloaders() above; the saved
+   * file's real carousel markup/behavior is completely untouched.
+   *
+   * Applied unconditionally to every matched element, not just ones
+   * currently `display:none` — Bootstrap's carousel (and others) overlay
+   * slides on the *active* one too, via `float:left; width:100%;
+   * margin-right:-100%` rather than absolute positioning, so the "active"
+   * slide needs the same reset as the hidden ones or they still visually
+   * stack on top of each other (float + a -100% margin pulls every next
+   * item back on top of the previous one, `position:static` alone doesn't
+   * cancel that).
+   * @returns {number} how many slide elements were touched
    */
   _revealHiddenSlides() {
-    const win = this.iframe.contentWindow;
-    if (!this.doc || !win) return 0;
+    if (!this.doc) return 0;
 
     const SLIDE_CLASS_PATTERN = /carousel-item|slick-slide|swiper-slide|owl-item|splide__slide|(^|[-_])slide($|[-_])/i;
     let revealedCount = 0;
@@ -124,15 +131,17 @@ export class Canvas {
       const className = el.getAttribute('class') || '';
       if (!SLIDE_CLASS_PATTERN.test(className)) return;
 
-      const computed = win.getComputedStyle(el);
-      if (computed.display === 'none' || computed.visibility === 'hidden') {
-        el.style.setProperty('display', 'block', 'important');
-        el.style.setProperty('visibility', 'visible', 'important');
-        el.style.setProperty('position', 'static', 'important');
-        el.style.setProperty('opacity', '1', 'important');
-        el.style.setProperty('transform', 'none', 'important');
-        revealedCount += 1;
-      }
+      el.style.setProperty('display', 'block', 'important');
+      el.style.setProperty('visibility', 'visible', 'important');
+      el.style.setProperty('position', 'static', 'important');
+      el.style.setProperty('opacity', '1', 'important');
+      el.style.setProperty('transform', 'none', 'important');
+      el.style.setProperty('float', 'none', 'important');
+      el.style.setProperty('width', '100%', 'important');
+      // Zero left/right/top (the negative-margin overlap trick lives here)
+      // but leave a little breathing room between now-stacked slides.
+      el.style.setProperty('margin', '0 0 12px 0', 'important');
+      revealedCount += 1;
     });
 
     return revealedCount;
