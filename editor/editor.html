@@ -31,7 +31,12 @@
     <header class="sprout-toolbar">
       <div class="sprout-toolbar__left">
         <span class="sprout-brand">🌱 Sprout Editor</span>
-        <span class="sprout-file-name" id="fileNameLabel">No file loaded</span>
+        <span class="sprout-file-switcher-wrap">
+          <select id="fileSwitcher" class="sprout-file-switcher" title="Switch which file you're editing" aria-label="Current file" disabled>
+            <option>No file loaded</option>
+          </select>
+          <span id="dirtyIndicator" class="sprout-dirty-dot sprout-hidden" title="Unsaved changes"></span>
+        </span>
       </div>
       <div class="sprout-toolbar__right">
         <button id="undoBtn" class="sprout-btn" title="Undo (Ctrl/Cmd+Z)" disabled>

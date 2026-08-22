@@ -10,7 +10,7 @@
 import { STORAGE_KEYS, defaultCommitMessage, originalValueAttr } from '../shared/constants.js';
 import { loadGithubHtmlFile, buildPreviewFromHtml } from '../services/file-loader.js';
 import { getEditableKind, serializeForSave } from '../services/html-utils.js';
-import { updateFile, utf8ToBase64, GitHubConflictError, GitHubAuthError } from '../services/github-api.js';
+import { updateFile, utf8ToBase64, listHtmlFiles, GitHubConflictError, GitHubAuthError } from '../services/github-api.js';
 import { hasToken } from '../services/github-auth.js';
 import { Canvas } from './canvas.js';
 import { Inspector } from './inspector.js';
@@ -20,7 +20,8 @@ import { HistoryStack, attachHistoryKeyboardShortcuts } from './history.js';
 // ---------- DOM references ----------
 
 const els = {
-  fileNameLabel: document.getElementById('fileNameLabel'),
+  fileSwitcher: document.getElementById('fileSwitcher'),
+  dirtyIndicator: document.getElementById('dirtyIndicator'),
   undoBtn: document.getElementById('undoBtn'),
   redoBtn: document.getElementById('redoBtn'),
   previewBtn: document.getElementById('previewBtn'),
@@ -51,6 +52,7 @@ const state = {
   dirty: false,
   selected: null, // { uid, kind, el } | null
   selectionTextBaseline: null, // pre-edit text snapshot, captured on select (see handleTextChange)
+  htmlFilePaths: null, // cached repo file list for the switcher — fetched once, reused across switches
 };
 
 let canvas;
@@ -87,6 +89,7 @@ async function init() {
 
   wireToolbar();
   wireSaveModal();
+  els.fileSwitcher.addEventListener('change', handleFileSwitchChange);
   els.statusSettingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
   window.addEventListener('beforeunload', (event) => {
     if (state.dirty) {
@@ -102,10 +105,10 @@ async function init() {
   }
 
   state.fileInfo = fileInfo;
-  els.fileNameLabel.textContent = fileInfo.fileName;
   document.title = `${fileInfo.fileName} — Sprout Editor`;
 
   await loadFile(fileInfo);
+  await populateFileSwitcher();
 }
 
 /** Reads the {owner,repo,branch,path} the content script stashed, then clears it (single-use handoff). */
@@ -147,6 +150,68 @@ async function loadFile(fileInfo) {
     console.error('Sprout Editor: failed to load file.', error);
     showFatalError(error);
   }
+}
+
+// ---------- File switcher ----------
+
+/**
+ * Fills the toolbar dropdown with every .html file in the repo (fetched
+ * once and cached — switching files afterward just updates the selection,
+ * no repeat network call) and marks the currently-open one as selected.
+ */
+async function populateFileSwitcher() {
+  try {
+    if (!state.htmlFilePaths) {
+      state.htmlFilePaths = await listHtmlFiles(state.fileInfo.owner, state.fileInfo.repo, state.fileInfo.branch);
+    }
+
+    els.fileSwitcher.innerHTML = '';
+    for (const path of state.htmlFilePaths) {
+      const option = document.createElement('option');
+      option.value = path;
+      option.textContent = path;
+      els.fileSwitcher.appendChild(option);
+    }
+    els.fileSwitcher.value = state.fileInfo.path;
+    els.fileSwitcher.disabled = false;
+  } catch (error) {
+    // Non-fatal — the user can still edit the file that's already loaded,
+    // they just won't be able to switch to a different one from here.
+    console.warn('Sprout Editor: could not list repo files for the switcher.', error);
+    els.fileSwitcher.innerHTML = '';
+    const option = document.createElement('option');
+    option.value = state.fileInfo.path;
+    option.textContent = state.fileInfo.path;
+    els.fileSwitcher.appendChild(option);
+  }
+}
+
+async function handleFileSwitchChange() {
+  const newPath = els.fileSwitcher.value;
+  if (newPath === state.fileInfo.path) return;
+
+  if (state.dirty && !confirm('You have unsaved changes. Switch files anyway? Your changes will be lost.')) {
+    els.fileSwitcher.value = state.fileInfo.path; // the browser already changed it visually — put it back
+    return;
+  }
+
+  await switchToFile(newPath);
+}
+
+/** Tears down all per-file state and loads a different file from the same repo/branch. */
+async function switchToFile(newPath) {
+  state.edits.clear();
+  historyStack.clear();
+  handleDeselect();
+  clearDirty();
+  refreshToolbarButtons();
+  els.commitMessageInput.value = ''; // any typed-but-uncommitted message referred to the old file
+
+  state.fileInfo = { ...state.fileInfo, path: newPath, fileName: newPath.split('/').pop() };
+  document.title = `${state.fileInfo.fileName} — Sprout Editor`;
+  els.fileSwitcher.value = newPath;
+
+  await loadFile(state.fileInfo);
 }
 
 // ---------- Selection / editing ----------
@@ -301,13 +366,13 @@ function refreshToolbarButtons() {
 
 function markDirty() {
   state.dirty = true;
-  els.fileNameLabel.classList.add('is-dirty');
+  els.dirtyIndicator.classList.remove('sprout-hidden');
   els.saveBtn.disabled = false;
 }
 
 function clearDirty() {
   state.dirty = false;
-  els.fileNameLabel.classList.remove('is-dirty');
+  els.dirtyIndicator.classList.add('sprout-hidden');
 }
 
 // ---------- Save flow ----------

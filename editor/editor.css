@@ -109,18 +109,46 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
-.sprout-file-name {
-  font-size: 13px;
-  color: var(--sprout-text-muted);
-  padding: 3px 10px;
-  background: var(--sprout-bg);
-  border: 1px solid var(--sprout-border);
-  border-radius: 6px;
+.sprout-file-switcher-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.sprout-file-name.is-dirty::after {
-  content: " ●";
-  color: var(--sprout-green);
+.sprout-file-switcher {
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--sprout-text-muted);
+  padding: 4px 26px 4px 10px;
+  background: var(--sprout-bg) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18"><path d="M5 7l4 4 4-4" fill="none" stroke="%235b6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>') no-repeat right 6px center;
+  background-size: 14px;
+  border: 1px solid var(--sprout-border);
+  border-radius: 6px;
+  max-width: 220px;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sprout-file-switcher:hover:not(:disabled) {
+  border-color: #c7ced8;
+  background-color: var(--sprout-panel-bg);
+}
+
+.sprout-file-switcher:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* Small dot next to the switcher, shown while there are unsaved changes —
+ * a <select>'s own box doesn't reliably render ::after content in Chrome,
+ * so this lives as a sibling element instead. */
+.sprout-dirty-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sprout-green);
+  flex-shrink: 0;
 }
 
 .sprout-btn {

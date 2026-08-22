@@ -60,6 +60,35 @@ export async function getFile(owner, repo, path, ref) {
 }
 
 /**
+ * List every .html/.htm file in a repo at a given branch, at any depth —
+ * powers the editor's file-switcher dropdown. Uses the Git Trees API (one
+ * recursive call) rather than walking directories one at a time.
+ * @returns {string[]} repo-relative paths, sorted
+ */
+export async function listHtmlFiles(owner, repo, branch) {
+  const url = `${GITHUB_API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw await toApiError(response, `Could not list files in ${owner}/${repo}@${branch}.`);
+  }
+
+  const data = await response.json();
+  if (data.truncated) {
+    // GitHub caps the recursive tree response for very large repos — the
+    // switcher just won't show every file in that case. Loading/saving the
+    // one file the user is already on is unaffected either way.
+    console.warn('Sprout Editor: repo file tree was truncated by GitHub — the file switcher may not list every .html file.');
+  }
+
+  return (data.tree || [])
+    .filter((entry) => entry.type === 'blob' && /\.html?$/i.test(entry.path))
+    .map((entry) => entry.path)
+    .sort();
+}
+
+/**
  * PUT updated content for an existing file (create-a-commit). Requires the
  * current `sha` so GitHub can detect concurrent edits — if the file changed
  * since it was loaded, GitHub responds 409 and we surface a GitHubConflictError
