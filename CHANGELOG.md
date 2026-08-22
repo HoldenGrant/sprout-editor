@@ -99,6 +99,10 @@ change landed in this repo.
   messages now proactively suggest checking/adding a GitHub connection.
 
 ### Changed
+- **Popup type scale sharpened to two deliberate sizes.** The title and body/status/hint/
+  button text were all clustered within a point of each other (15px/12.5px/12px) — no
+  real hierarchy at a glance. Now 17px for the title, 12px for everything else (a 1.42
+  ratio instead of ~1.2).
 - **Preview mode now hides both sidebars, not just the hover/selection outlines.**
   Element categories, Layers, and Inspector fields all do nothing useful while canvas
   clicks are inert in preview mode — leaving them up was just unusable UI taking up
