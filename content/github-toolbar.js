@@ -78,11 +78,30 @@
     document.body.appendChild(container);
   }
 
+  // Tracks the file the button *should* currently be showing for, separate
+  // from whether it's actually still in the DOM right now — GitHub's
+  // React-driven UI can re-render the toolbar region for reasons that have
+  // nothing to do with navigation (its own internal state changes), which
+  // silently wipes out any DOM node we inserted ourselves without ever
+  // firing a URL change. observeGithubNavigation() alone has no reason to
+  // notice that, so it's checked independently below.
+  let currentFileInfo = null;
+
+  function ensureButtonPresent() {
+    if (!currentFileInfo) return;
+    if (!document.getElementById(BUTTON_ID)) {
+      injectButton(currentFileInfo);
+    }
+  }
+
   window.SproutDetector.observeGithubNavigation((fileInfo) => {
+    currentFileInfo = fileInfo;
     if (fileInfo) {
       injectButton(fileInfo);
     } else {
       removeExistingButton();
     }
   });
+
+  setInterval(ensureButtonPresent, 800);
 })();
