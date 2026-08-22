@@ -9,6 +9,11 @@ normally, everything text-based (privacy policy, listing copy, permissions justi
 is drafted in [`docs/webstore/`](docs/webstore/) — `docs/webstore/submission-checklist.md`
 covers what's left.
 
+A public homepage/instructions page for the extension itself lives at
+[holdengrant.github.io/sprout-editor](https://holdengrant.github.io/sprout-editor/)
+(source: `docs/index.html`). See `CHANGELOG.md` for the full history of what's changed
+and why.
+
 ## How it works
 
 ```
@@ -53,6 +58,9 @@ sprout-editor/
 └── assets/icons/
 ```
 
+(`docs/` and `CHANGELOG.md` sit outside this tree — `docs/` is the public GitHub Pages
+site, not part of the loadable extension itself.)
+
 ## Setup
 
 1. **Load the extension**
@@ -76,6 +84,14 @@ sprout-editor/
    machine — never written into source code or sent anywhere except `github.com`/
    `api.github.com`. See `services/github-auth.js` for the auth architecture.
 
+   > **Gotcha worth knowing:** GitHub treats *authorizing* a GitHub App (what device
+   > flow does) and *installing* it on specific repos as two separate consent steps —
+   > it's possible to complete device flow successfully and still have zero repo
+   > access, since installation never happened. Sprout Editor checks for this
+   > automatically right after sign-in and shows a direct "Grant repository access"
+   > link if it detects it, but it's a real GitHub behavior worth knowing about if
+   > loads ever fail with a "not found" right after connecting.
+
    **One-time setup for device flow (only needed once, by whoever ships this extension —
    not by each end user):** create a GitHub App at
    [github.com/settings/apps/new](https://github.com/settings/apps/new) with:
@@ -92,6 +108,8 @@ sprout-editor/
    - Visit `https://github.com/HoldenGrant/sprout/blob/main/index.html`
    - Click **🌱 Edit with Sprout**
    - Click any heading, paragraph, button, or image to edit it
+   - Use the **file dropdown** in the toolbar to switch to another `.html` file in the
+     same repo without leaving the tab
    - **Ctrl/Cmd+Z** / **Ctrl/Cmd+Shift+Z** to undo/redo
    - **Save to GitHub** → confirm the commit message → **Save Changes**
 
@@ -100,7 +118,30 @@ sprout-editor/
 - **MODE 2 (explicit)**: if any element on the page has `data-sprout="text|image|button"`,
   those are the only editable elements.
 - **MODE 1 (smart detection)**, used otherwise: `h1–h6, p, span, li` (text),
-  `a, button` (button/link), `img` (image).
+  `a, button` (button/link), `img` (image) — unconditionally. Generic container tags
+  (`div, td, th, dt, dd, label, figcaption, summary, blockquote, caption`) also count as
+  editable text, but *only* when they're a leaf (no nested elements) holding real text —
+  a template's `<div class="stat-label">10+ years…</div>` qualifies, a `<div>` wrapping
+  a whole page section doesn't. See `GENERIC_LEAF_TEXT_TAGS` in `shared/constants.js`
+  for why that distinction matters.
+
+## Smart handling for script-dependent sites
+
+The preview iframe is sandboxed with no `allow-scripts` (see `editor/canvas.js`) — the
+site's own JavaScript never runs, which is exactly right for safety, but means anything
+a site's script would normally do on page load simply doesn't happen. Two common
+patterns get handled anyway:
+
+- **Stuck loading-screen overlays.** Template sites commonly show a full-screen
+  `#loader`-style div that a script fades out on window load. `canvas.js`
+  `_autoHidePreloaders()` detects elements that both look like a loader by name *and*
+  are actually a fixed/absolute overlay covering most of the viewport, and hides them —
+  preview-only, never touching the saved file.
+- **Missing images with an `onerror` fallback.** A site guarding a possibly-missing
+  image with `onerror="this.src='https://cdn.../fallback.jpg'"` normally shows that
+  fallback seamlessly to real visitors; the sandbox can't run that handler either.
+  `file-loader.js` `applyOnerrorFallback()` parses that exact pattern and applies the
+  same fallback itself when the primary local image can't be loaded.
 
 ## Known v1 limitations
 
@@ -118,6 +159,10 @@ sprout-editor/
 - v1 applies style edits as inline styles on the target element (as the spec allows);
   the edit-tracking model (`services/html-utils.js`) is structured so a future version
   could redirect them into real CSS rules instead.
+- The file-switcher dropdown's repo file list comes from one recursive Git Trees API
+  call, which GitHub caps for very large repos (`truncated: true` in the response) — in
+  that case the switcher just won't list every `.html` file. Loading/saving the file
+  already open is unaffected.
 
 ## Architecture notes
 
@@ -129,3 +174,15 @@ sprout-editor/
 - **Content-script detection makes zero network calls.** URL parsing runs on every
   GitHub page load; all GitHub API usage is deferred until the user actually clicks
   "Edit with Sprout".
+- **Detecting GitHub's SPA navigation is belt-and-suspenders, not any single signal.**
+  Clicking through GitHub's own UI (its file tree, breadcrumbs) uses Turbo client-side
+  routing, which doesn't reliably fire a consistent event across GitHub's frontend
+  versions. `github-detector.js` listens for several known Turbo/pjax event names *and*
+  runs a plain 400ms `location.href` poll — the poll is what actually guarantees
+  detection; the events are just a faster path when they do fire.
+- **The injected button re-asserts its own presence, independent of navigation.**
+  GitHub's toolbar region is React-controlled and can re-render for reasons that have
+  nothing to do with navigation, silently stripping out any DOM node the extension
+  inserted itself. `github-toolbar.js` checks every 800ms that its button is still
+  actually in the DOM and re-inserts it if a host re-render removed it — a separate
+  concern from detecting *which* file the button should be showing for.
