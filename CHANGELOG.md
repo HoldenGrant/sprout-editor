@@ -13,6 +13,7 @@ change landed in this repo.
   not just bare tag names). Rows with children get a collapse/expand toggle, and
   selecting something in canvas auto-expands any collapsed ancestor so it's never
   highlighted inside a folded, invisible branch. (`editor/layers.js`, new)
+
 - **Background color/image editing for sections and containers.** `div`, `section`,
   `article`, `header`, `footer`, `aside`, `main`, `nav`, `ul`, `ol`, `figure`, `table`,
   and `form` are now full participants in the same save/undo pipeline as everything
@@ -91,6 +92,10 @@ change landed in this repo.
   messages now proactively suggest checking/adding a GitHub connection.
 
 ### Changed
+- **Layers tree starts collapsed below the top level.** Full-depth expansion on load
+  was overwhelming on any real page — only direct children of `<body>` now start open;
+  everything deeper opens on click, or automatically when canvas selection lands inside
+  it (`setActiveLayer`'s existing ancestor-expansion logic, unchanged).
 - UI polish pass across the editor and Options page: replaced every functional-icon
   emoji (undo/redo, preview, sidebar categories) with a small hand-authored SVG icon
   set — emoji standing in for icons was flagged as a real defect, not a style choice.

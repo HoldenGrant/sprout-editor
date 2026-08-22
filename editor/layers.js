@@ -72,6 +72,13 @@ export class Layers {
       const li = document.createElement('li');
       li.className = 'sprout-layer-row';
       li.dataset.layerId = layerId;
+      // Collapsed by default — a fully-expanded tree is overwhelming on any
+      // real page. Depth 0 (direct children of <body>) stays open so there's
+      // still something to see on first load; everything below that starts
+      // folded and opens on demand (or automatically, via setActiveLayer's
+      // ancestor-expansion when canvas selection lands inside it).
+      const startCollapsed = hasChildren && depth > 0;
+      if (startCollapsed) li.classList.add('is-collapsed');
 
       const head = document.createElement('div');
       head.className = 'sprout-layer-row-head';
@@ -82,7 +89,7 @@ export class Layers {
         toggle.type = 'button';
         toggle.className = 'sprout-layer-toggle';
         toggle.setAttribute('aria-label', 'Collapse or expand');
-        toggle.textContent = '▾';
+        toggle.textContent = startCollapsed ? '▸' : '▾';
         toggle.addEventListener('click', (event) => {
           event.stopPropagation(); // don't also trigger the label's select-this-element click
           const collapsed = li.classList.toggle('is-collapsed');

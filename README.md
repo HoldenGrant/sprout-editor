@@ -109,9 +109,10 @@ site, not part of the loadable extension itself.)
    - Visit `https://github.com/HoldenGrant/sprout/blob/main/index.html`
    - Click **🌱 Edit with Sprout**
    - Click any heading, paragraph, button, or image to edit it
-   - Browse the **Layers** panel in the sidebar (collapsible) to see the page's
-     structure and jump straight to any element — including sections and `<div>`s,
-     which get their own background color/image controls
+   - Browse the **Layers** panel in the sidebar to see the page's structure and jump
+     straight to any element — including sections and `<div>`s, which get their own
+     background color/image controls. Rows below the top level start collapsed;
+     selecting something in canvas auto-expands whatever branch it's inside
    - Use the **file dropdown** in the toolbar to switch to another `.html` file in the
      same repo without leaving the tab
    - **Ctrl/Cmd+Z** / **Ctrl/Cmd+Shift+Z** to undo/redo
