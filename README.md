@@ -3,6 +3,12 @@
 A Chrome Extension (Manifest V3) that lets non-technical users visually edit a static HTML file
 stored in a GitHub repo — no code required — and save the result back as a real commit.
 
+Currently installable via `chrome://extensions` → Developer Mode → Load unpacked (see
+Setup below). For publishing this to the Chrome Web Store so anyone can install it
+normally, everything text-based (privacy policy, listing copy, permissions justification)
+is drafted in [`docs/webstore/`](docs/webstore/) — `docs/webstore/submission-checklist.md`
+covers what's left.
+
 ## How it works
 
 ```
