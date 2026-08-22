@@ -54,12 +54,25 @@
       onChange(parseGithubHtmlUrl(window.location.href));
     };
 
-    // Turbo (GitHub's SPA navigation library) fires this on every route change.
-    document.addEventListener('turbo:render', check);
-    // Fallbacks in case GitHub's frontend framework changes internals.
+    // GitHub's Turbo-based navigation (clicking a file in the repo tree,
+    // breadcrumbs, etc.) swaps the page's content without a real browser
+    // navigation, so window "load"/history APIs alone can silently miss it.
+    // None of turbo:render / turbo:load / a DOM mutation firing reliably is
+    // guaranteed across GitHub's frontend versions, so none of these are
+    // trusted alone — a plain interval poll below is what actually
+    // guarantees detection regardless of which (if any) of these fire.
+    ['turbo:render', 'turbo:load', 'turbo:frame-render', 'pjax:end'].forEach((eventName) =>
+      document.addEventListener(eventName, check)
+    );
     window.addEventListener('popstate', check);
     const observer = new MutationObserver(check);
     observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // Belt-and-suspenders: a cheap, framework-agnostic poll. Worst case this
+    // is what catches a navigation, at most ~400ms after it happens — far
+    // less than the time it takes a human to notice the button is missing
+    // and go looking for it.
+    setInterval(check, 400);
 
     check(); // run once for the initial page load
   }
