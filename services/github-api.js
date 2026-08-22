@@ -30,6 +30,13 @@ export class GitHubAuthError extends GitHubApiError {
   }
 }
 
+export class GitHubRateLimitError extends GitHubApiError {
+  constructor(message, status) {
+    super(message, status);
+    this.name = 'GitHubRateLimitError';
+  }
+}
+
 /**
  * GET a file's contents + metadata from a repo via the Contents API.
  * @returns {{ path: string, sha: string, base64: string, size: number, name: string }}
@@ -135,6 +142,28 @@ async function toApiError(response, fallbackMessage) {
     // response body wasn't JSON; ignore
   }
 
+  // GitHub reports both "you've hit your hourly limit" (primary) and
+  // "you're sending requests too fast" (secondary/abuse) rate limiting as a
+  // plain 403 — the same status code a real bad-credentials rejection uses.
+  // Telling someone to "reconnect" for a rate limit is actively wrong advice
+  // (it does nothing, they just need to wait), so this has to be checked
+  // *before* the generic 401/403 branch below, using the extra signals
+  // GitHub sends only for rate limiting: an `x-ratelimit-remaining: 0`
+  // header for the primary case, or "secondary rate limit" in the error
+  // body's own message for the abuse case.
+  if (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0') {
+    return new GitHubRateLimitError(
+      `GitHub's hourly API limit for this account was hit — it resets ${formatRateLimitReset(response.headers.get('x-ratelimit-reset'))}. No need to reconnect, just wait and try again.${detail}`,
+      response.status
+    );
+  }
+  if ((response.status === 403 || response.status === 429) && /secondary rate limit/i.test(detail)) {
+    return new GitHubRateLimitError(
+      `GitHub is temporarily throttling requests from this account — wait ${formatRetryAfter(response.headers.get('retry-after'))} and try again.${detail}`,
+      response.status
+    );
+  }
+
   if (response.status === 401 || response.status === 403) {
     // Message is deliberately connection-method-agnostic ("your GitHub
     // connection", not "Personal Access Token") — the user may have
@@ -157,6 +186,25 @@ async function toApiError(response, fallbackMessage) {
     return new GitHubApiError(`Not found.${detail} ${fallbackMessage} ${hint}`, 404);
   }
   return new GitHubApiError(`${fallbackMessage}${detail}`, response.status);
+}
+
+/** Turns the `x-ratelimit-reset` header (Unix seconds) into "in about N minutes". */
+function formatRateLimitReset(resetHeaderValue) {
+  const resetSeconds = Number(resetHeaderValue);
+  if (!Number.isFinite(resetSeconds)) return 'shortly';
+  const msRemaining = resetSeconds * 1000 - Date.now();
+  if (msRemaining <= 0) return 'now — try again';
+  const minutes = Math.ceil(msRemaining / 60000);
+  return minutes <= 1 ? 'in about a minute' : `in about ${minutes} minutes`;
+}
+
+/** Turns a `retry-after` header (seconds) into "a minute" / "N minutes". */
+function formatRetryAfter(retryAfterHeaderValue) {
+  const seconds = Number(retryAfterHeaderValue);
+  if (!Number.isFinite(seconds) || seconds <= 0) return 'a minute';
+  if (seconds < 60) return `${Math.ceil(seconds)} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? 'a minute' : `${minutes} minutes`;
 }
 
 // Path segments must be individually percent-encoded but slashes preserved.

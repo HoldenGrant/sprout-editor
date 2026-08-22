@@ -97,6 +97,17 @@ change landed in this repo.
 - **Private-repo loads failing with a bare, unhelpful "Not Found."** GitHub reports
   private content as 404 to anyone without access, indistinguishable from a typo. Error
   messages now proactively suggest checking/adding a GitHub connection.
+- **A hit GitHub API rate limit was misreported as bad credentials.** GitHub returns the
+  exact same 403 status for "you've hit your hourly limit" and "your token is invalid" —
+  `services/github-api.js` was treating every 403 as the latter, telling people to
+  reconnect in Settings when reconnecting does nothing for a rate limit. Now checks the
+  extra signals GitHub sends only for rate limiting (`x-ratelimit-remaining: 0`, or
+  "secondary rate limit" in the error body) *before* falling through to the generic
+  auth-error path, and reports an actual wait time instead. `showFatalError` in
+  `editor.js` also stopped showing the "Open Settings" button for this and any other
+  non-auth fatal error — it was appearing unconditionally on every load failure before,
+  regardless of cause. Same 403-ambiguity fix applied to `github-auth.js`'s
+  `validateToken` (used by both Settings and the popup).
 
 ### Changed
 - **Popup type scale sharpened to two deliberate sizes.** The title and body/status/hint/

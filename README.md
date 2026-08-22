@@ -202,6 +202,13 @@ patterns get handled anyway:
 - **Content-script detection makes zero network calls.** URL parsing runs on every
   GitHub page load; all GitHub API usage is deferred until the user actually clicks
   "Edit with Sprout".
+- **No proactive rate limiter — GitHub's own per-token limit (5,000 requests/hour,
+  authenticated) is generous enough for one person editing one file at a time that it's
+  not worth the complexity of a client-side budget/queue.** What *does* matter is
+  reporting it correctly if it's ever actually hit: GitHub returns a plain 403 for both
+  "you're out of requests" and "your token is bad," which look identical unless you also
+  check `x-ratelimit-remaining`/the error body. `github-api.js`'s `toApiError` checks
+  that before assuming a 403 means bad credentials — see `GitHubRateLimitError`.
 - **Detecting GitHub's SPA navigation is belt-and-suspenders, not any single signal.**
   Clicking through GitHub's own UI (its file tree, breadcrumbs) uses Turbo client-side
   routing, which doesn't reliably fire a consistent event across GitHub's frontend

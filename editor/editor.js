@@ -528,8 +528,11 @@ function showFatalError(error) {
   els.statusOverlay.classList.remove('sprout-hidden');
   els.statusOverlay.classList.add('is-error');
   // A load failure is very often a missing/insufficient GitHub token (private
-  // repos 404 for anyone without access) — offer a direct way to fix it.
-  els.statusSettingsBtn.classList.remove('sprout-hidden');
+  // repos 404 for anyone without access) — offer a direct way to fix it. But
+  // only for actual auth problems: showing "Open Settings" for something
+  // like a rate limit (see GitHubRateLimitError) would send the user to fix
+  // a connection that was never broken.
+  els.statusSettingsBtn.classList.toggle('sprout-hidden', !(error instanceof GitHubAuthError));
 }
 
 function showToast(message, type = 'info', durationMs = 4000) {

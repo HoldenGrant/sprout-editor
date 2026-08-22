@@ -92,6 +92,13 @@ export async function validateToken(token) {
     if (response.status === 401) {
       throw new Error('That token was rejected by GitHub (invalid or expired).');
     }
+    // A 403 here isn't necessarily a bad token — GitHub reports "you've hit
+    // the hourly API limit" the same way. Same distinction as
+    // services/github-api.js's toApiError; duplicated rather than imported
+    // to avoid a circular import (github-api.js already imports from here).
+    if (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0') {
+      throw new Error("GitHub's hourly API limit for this account was hit — wait a bit and try again, this isn't a problem with the token.");
+    }
     throw new Error(`GitHub returned an unexpected error (${response.status}).`);
   }
 
