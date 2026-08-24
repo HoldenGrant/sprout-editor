@@ -5,6 +5,32 @@ change landed in this repo.
 
 ## 2026-08-25
 
+### Added
+- **Insert new elements** — a green "+" appears above/below any text, button, or image
+  when hovering it in canvas, and every uid'd row in the Layers panel gets its own "+"
+  on hover (container rows insert *inside*, everything else inserts a sibling *after*).
+  Both open the same small picker: Paragraph, Heading, Button/Link, Image, or an empty
+  Container (`shared/constants.js` `INSERT_PALETTE`) — a deliberately small fixed set for
+  v1, not a generic drag-in-anything builder. Whatever's picked is immediately selected
+  (a new paragraph starts in-place editable) and fully participates in undo/redo and
+  save, exactly like anything already on the page.
+
+  This is a genuinely new capability for the architecture, not just a new UI control:
+  every edit before this assumed the DOM's *shape* never changed, only text/attrs/styles
+  on elements that already existed (see the old top-of-file comment in
+  `services/html-utils.js`). Structural changes now get their own tracked list
+  (`state.insertions`, replayed onto the pristine original HTML *before* `state.edits`
+  at save time — see `applyInsertionsToDocument`), kept deliberately separate from
+  `edits` rather than folded into it. Inserted elements get their own uid scheme
+  (`INSERTED_UID_PREFIX`, e.g. `new-3`) so they can never collide with the plain
+  incrementing integers assigned to original-document elements. New: `editor/insert-
+  menu.js` (the shared picker), `canvas.js` `insertElement`/`removeElement`/the hover-+
+  affordances, `layers.js`'s per-row `+`, and a new `'insert'`-typed history command
+  alongside the existing text/attr/style one.
+
+  No delete yet — undoing right after inserting is the only way back for now (see
+  README's "Known v1 limitations").
+
 ### Fixed
 - **Every style-panel edit silently failed to save on its first change to a given field.**
   Reported as "Alignment doesn't save," but the same bug affected font size, text/button

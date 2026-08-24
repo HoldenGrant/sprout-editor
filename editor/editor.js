@@ -7,7 +7,7 @@
 // "two DOM representations" note in services/html-utils.js for why `edits`
 // is authoritative for saving rather than the live preview DOM.
 
-import { STORAGE_KEYS, defaultCommitMessage, originalValueAttr, SPROUT_UID_ATTR } from '../shared/constants.js';
+import { STORAGE_KEYS, defaultCommitMessage, originalValueAttr, SPROUT_UID_ATTR, SPROUT_KINDS, INSERTED_UID_PREFIX } from '../shared/constants.js';
 import { loadGithubHtmlFile, buildPreviewFromHtml } from '../services/file-loader.js';
 import { getEditableKind, serializeForSave } from '../services/html-utils.js';
 import { updateFile, utf8ToBase64, listHtmlFiles, GitHubConflictError, GitHubAuthError } from '../services/github-api.js';
@@ -17,6 +17,7 @@ import { Inspector } from './inspector.js';
 import { initSidebar } from './sidebar.js';
 import { Layers, LAYER_ID_ATTR } from './layers.js';
 import { HistoryStack, attachHistoryKeyboardShortcuts } from './history.js';
+import { openInsertMenu } from './insert-menu.js';
 
 // ---------- DOM references ----------
 
@@ -52,6 +53,8 @@ const state = {
   sha: null,
   originalHtml: null, // pristine source of truth; save always re-parses THIS
   edits: new Map(), // uid -> { text?, attrs?: {}, styles?: {} } — see html-utils.js
+  insertions: [], // ordered [{uid, anchorUid, position, tag, kind}] — see html-utils.js applyInsertionsToDocument
+  nextInsertUid: 0, // counter for INSERTED_UID_PREFIX-prefixed uids, reset alongside insertions
   dirty: false,
   selected: null, // { uid, kind, el } | null
   selectionTextBaseline: null, // pre-edit text snapshot, captured on select (see handleTextChange)
@@ -76,13 +79,14 @@ async function init() {
     onSelect: handleSelect,
     onDeselect: handleDeselect,
     onTextChange: handleInlineTextChange,
+    onInsertRequest: handleInsertRequest,
   });
   inspector = new Inspector(els.inspectorBody, {
     onTextChange: handleInspectorTextChange,
     onAttrChange: handleAttrChange,
     onStyleChange: handleStyleChange,
   });
-  layers = new Layers(els.layersTree, { onSelect: handleLayerSelect });
+  layers = new Layers(els.layersTree, { onSelect: handleLayerSelect, onInsertRequest: handleInsertRequest });
 
   initSidebar(els.elementList, {
     onCategoryClick: (category) => {
@@ -214,6 +218,8 @@ async function handleFileSwitchChange() {
 /** Tears down all per-file state and loads a different file from the same repo/branch. */
 async function switchToFile(newPath) {
   state.edits.clear();
+  state.insertions = [];
+  state.nextInsertUid = 0;
   historyStack.clear();
   handleDeselect();
   clearDirty();
@@ -265,6 +271,90 @@ function handleLayerSelect(layerId) {
   }
 }
 
+/**
+ * A "+" was clicked — either one of canvas's hover buttons above/below an
+ * editable element, or a Layers row's own + button. Both funnel through
+ * here so there's exactly one insert-type menu and one insertion code path
+ * regardless of where the click came from.
+ */
+function handleInsertRequest({ anchorUid, position, clientX, clientY }) {
+  openInsertMenu({
+    x: clientX,
+    y: clientY,
+    onPick: (item) => performInsert(anchorUid, position, item),
+  });
+}
+
+/** Creates a new element (from the INSERT_PALETTE item picked), records it, and selects it. */
+function performInsert(anchorUid, position, item) {
+  const uid = `${INSERTED_UID_PREFIX}${state.nextInsertUid++}`;
+  const insertion = { uid, anchorUid, position, tag: item.tag, kind: item.kind };
+
+  const el = canvas.insertElement(insertion);
+  if (!el) {
+    showToast('Could not add that element — its anchor is no longer on the page.', 'error');
+    return;
+  }
+  state.insertions.push(insertion);
+
+  if (item.initialText) applyFieldToCanvasAndState(uid, 'text', null, item.initialText);
+  if (item.initialAttrs) {
+    for (const [name, value] of Object.entries(item.initialAttrs)) {
+      applyFieldToCanvasAndState(uid, 'attr', name, value);
+    }
+  }
+
+  historyStack.push({
+    type: 'insert',
+    uid,
+    anchorUid,
+    position,
+    tag: item.tag,
+    kind: item.kind,
+    initialText: item.initialText,
+    initialAttrs: item.initialAttrs,
+  });
+
+  layers.rebuild(canvas.doc);
+  selectInsertedElement(uid, item.kind);
+  markDirty();
+  refreshToolbarButtons();
+}
+
+/** Containers aren't canvas-selectable (see canvas.js) — mirrors handleLayerSelect's same split. */
+function selectInsertedElement(uid, kind) {
+  if (kind === SPROUT_KINDS.CONTAINER) {
+    const el = canvas.getElementByUid(uid);
+    canvas.deselect();
+    if (el) canvas.focusElement(el);
+    layers.setActiveLayer(el?.getAttribute(LAYER_ID_ATTR) ?? null);
+  } else {
+    canvas.select(uid);
+  }
+}
+
+/** Undo/redo for an 'insert' history command — see handleHistoryApply's dispatch. */
+function applyInsertCommand(command, direction) {
+  if (direction === 'undo') {
+    if (state.selected?.uid === command.uid) handleDeselect();
+    canvas.removeElement(command.uid);
+    state.insertions = state.insertions.filter((entry) => entry.uid !== command.uid);
+    state.edits.delete(command.uid);
+  } else {
+    canvas.insertElement({ uid: command.uid, anchorUid: command.anchorUid, position: command.position, tag: command.tag, kind: command.kind });
+    state.insertions.push({ uid: command.uid, anchorUid: command.anchorUid, position: command.position, tag: command.tag, kind: command.kind });
+    if (command.initialText) applyFieldToCanvasAndState(command.uid, 'text', null, command.initialText);
+    if (command.initialAttrs) {
+      for (const [name, value] of Object.entries(command.initialAttrs)) {
+        applyFieldToCanvasAndState(command.uid, 'attr', name, value);
+      }
+    }
+  }
+  layers.rebuild(canvas.doc);
+  markDirty();
+  refreshToolbarButtons();
+}
+
 /** In-canvas contentEditable text commit (blur). The live DOM is already updated by the browser. */
 function handleInlineTextChange(uid, newText) {
   const before = getFieldBaseline(uid, 'text', null);
@@ -293,12 +383,17 @@ function handleStyleChange(uid, prop, newValue) {
 
 function commitFieldChange(uid, category, field, before, after) {
   applyFieldToCanvasAndState(uid, category, field, after);
-  historyStack.push({ uid, category, field, before, after });
+  historyStack.push({ type: 'field', uid, category, field, before, after });
   markDirty();
   refreshToolbarButtons();
 }
 
 function handleHistoryApply(command, direction) {
+  if (command.type === 'insert') {
+    applyInsertCommand(command, direction);
+    return;
+  }
+
   const value = direction === 'undo' ? command.before : command.after;
   applyFieldToCanvasAndState(command.uid, command.category, command.field, value);
 
@@ -466,7 +561,7 @@ async function handleConfirmSave() {
   els.saveModalConfirm.textContent = 'Saving…';
 
   try {
-    const finalHtml = serializeForSave(state.originalHtml, state.edits);
+    const finalHtml = serializeForSave(state.originalHtml, state.edits, state.insertions);
     const result = await updateFile(state.fileInfo.owner, state.fileInfo.repo, state.fileInfo.path, {
       base64Content: utf8ToBase64(finalHtml),
       message,
@@ -481,6 +576,8 @@ async function handleConfirmSave() {
     state.sha = result.sha;
     state.originalHtml = finalHtml;
     state.edits.clear();
+    state.insertions = [];
+    state.nextInsertUid = 0;
     historyStack.clear();
     handleDeselect();
     const preview = await buildPreviewFromHtml(finalHtml, state.fileInfo);

@@ -8,7 +8,7 @@
 // EditorState, history, or the inspector.
 
 import { getEditableKind, documentUsesSproutMode } from '../services/html-utils.js';
-import { SPROUT_UID_ATTR, SPROUT_KINDS, EDITOR_ONLY_STYLE_ID } from '../shared/constants.js';
+import { SPROUT_UID_ATTR, SPROUT_ATTR, SPROUT_KINDS, EDITOR_ONLY_STYLE_ID } from '../shared/constants.js';
 
 export class Canvas {
   /**
@@ -17,16 +17,19 @@ export class Canvas {
    *   onSelect: (info: {uid: string, kind: string, el: Element}) => void,
    *   onDeselect: () => void,
    *   onTextChange: (uid: string, newText: string) => void,
+   *   onInsertRequest: (info: {anchorUid: string, position: string, clientX: number, clientY: number}) => void,
    * }} handlers
    */
-  constructor(iframeEl, { onSelect, onDeselect, onTextChange }) {
+  constructor(iframeEl, { onSelect, onDeselect, onTextChange, onInsertRequest }) {
     this.iframe = iframeEl;
     this.onSelect = onSelect;
     this.onDeselect = onDeselect;
     this.onTextChange = onTextChange;
+    this.onInsertRequest = onInsertRequest;
     this.selectedUid = null;
     this.previewMode = false;
     this.useSproutMode = false;
+    this._hoverUid = null;
   }
 
   get doc() {
@@ -42,6 +45,12 @@ export class Canvas {
     return new Promise((resolve) => {
       const handleLoad = () => {
         this.iframe.removeEventListener('load', handleLoad);
+        // A fresh srcdoc load means a brand-new contentDocument — any
+        // insert-affordance buttons from the PREVIOUS document are now
+        // pointing at nodes that no longer exist; drop the references so
+        // _ensureInsertAffordances() recreates them in the new one.
+        this._insertAbove = null;
+        this._insertBelow = null;
         this.useSproutMode = documentUsesSproutMode(this.doc);
         this._injectEditorStyles();
         this._wireInteractions();
@@ -157,6 +166,32 @@ export class Canvas {
       .sprout-layer-focus-outline { outline: 2px solid #2ea043 !important; outline-offset: 3px; transition: outline-color 0.3s ease 1.1s; }
       [contenteditable="true"] { outline: 2px solid #2ea043 !important; outline-offset: 3px; cursor: text; }
       html.sprout-preview-mode [${SPROUT_UID_ATTR}] { cursor: default !important; }
+      .sprout-insert-btn {
+        position: fixed;
+        width: 22px;
+        height: 22px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: #2ea043;
+        color: #fff;
+        font-size: 15px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2147483647;
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.75);
+        transition: opacity 0.12s ease, transform 0.12s ease;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      }
+      .sprout-insert-btn.is-visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+      .sprout-insert-btn:hover { filter: brightness(1.08); }
+      html.sprout-preview-mode .sprout-insert-btn { display: none !important; }
     `;
     this.doc.head.appendChild(style);
   }
@@ -170,20 +205,7 @@ export class Canvas {
       // detection rules elsewhere are designed to avoid. Reach a container
       // through the Layers panel instead (see editor/layers.js).
       if (getEditableKind(el, this.useSproutMode) === SPROUT_KINDS.CONTAINER) return;
-
-      el.addEventListener('mouseenter', () => {
-        if (this.previewMode || el.getAttribute(SPROUT_UID_ATTR) === this.selectedUid) return;
-        el.classList.add('sprout-hover-outline');
-      });
-      el.addEventListener('mouseleave', () => {
-        el.classList.remove('sprout-hover-outline');
-      });
-      el.addEventListener('click', (event) => {
-        event.preventDefault();
-        if (this.previewMode) return;
-        event.stopPropagation();
-        this.select(el.getAttribute(SPROUT_UID_ATTR));
-      });
+      this._wireOne(el);
     });
 
     // Any click that isn't caught (and stopped) by an editable element above
@@ -191,6 +213,154 @@ export class Canvas {
     this.doc.addEventListener('click', () => {
       if (!this.previewMode) this.deselect();
     });
+  }
+
+  /**
+   * Wires hover/click/insert-affordance behavior onto ONE editable
+   * (non-container) element. Called both for every element during the
+   * initial full pass above, and for a single newly-inserted element
+   * (insertElement()) — kept as its own method specifically so inserting an
+   * element doesn't need to re-wire everything already on the page.
+   */
+  _wireOne(el) {
+    el.addEventListener('mouseenter', () => {
+      if (this.previewMode) return;
+      // Skip the dashed hover outline on the already-SELECTED element (it
+      // already has its own solid selected outline) — but the + buttons
+      // should still show either way. "Select this paragraph, then add a
+      // sibling right after it" without needing to hover away and back is
+      // exactly the natural sequence this exists for.
+      if (el.getAttribute(SPROUT_UID_ATTR) !== this.selectedUid) {
+        el.classList.add('sprout-hover-outline');
+      }
+      this._showInsertButtonsFor(el);
+    });
+    el.addEventListener('mouseleave', () => {
+      el.classList.remove('sprout-hover-outline');
+      this._scheduleHideInsertButtons();
+    });
+    el.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (this.previewMode) return;
+      event.stopPropagation();
+      this.select(el.getAttribute(SPROUT_UID_ATTR));
+    });
+  }
+
+  // ---------- "+" insert affordances (canvas) ----------
+  //
+  // A pair of small round + buttons that hover above/below whichever
+  // editable element the pointer is currently over, letting the user insert
+  // a new sibling there without going through the Layers panel. Created
+  // once and repositioned via getBoundingClientRect() rather than recreated
+  // per-hover — cheaper, and avoids a flash of a freshly-created element.
+  // Deliberately absent for CONTAINER-kind elements (_wireOne is never
+  // called for them), matching the existing "containers aren't
+  // canvas-clickable" rule — see editor/layers.js for how a container gets
+  // its own "+" instead.
+
+  _ensureInsertAffordances() {
+    if (this._insertAbove) return;
+    this._insertAbove = this._createInsertButton('before');
+    this._insertBelow = this._createInsertButton('after');
+    this.doc.body.appendChild(this._insertAbove);
+    this.doc.body.appendChild(this._insertBelow);
+    // A stale button left floating over content that's since scrolled away
+    // looks broken — just hide on any scroll rather than tracking position.
+    this.iframe.contentWindow?.addEventListener('scroll', () => this._hideInsertButtons(), { passive: true });
+  }
+
+  _createInsertButton(position) {
+    const btn = this.doc.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sprout-insert-btn';
+    btn.textContent = '+';
+    btn.setAttribute('aria-label', position === 'before' ? 'Add element above' : 'Add element below');
+    // Hovering onto the button itself (moving off the target element toward
+    // it) must not immediately hide it — cancel the pending hide, same as
+    // re-entering the target element would.
+    btn.addEventListener('mouseenter', () => this._cancelHideInsertButtons());
+    btn.addEventListener('mouseleave', () => this._scheduleHideInsertButtons());
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!this._hoverUid) return;
+      // Convert this iframe-internal click position to parent-viewport
+      // coordinates (the insert-type menu it opens lives in the parent
+      // document, not inside this sandboxed iframe).
+      const iframeRect = this.iframe.getBoundingClientRect();
+      this.onInsertRequest?.({
+        anchorUid: this._hoverUid,
+        position,
+        clientX: iframeRect.left + event.clientX,
+        clientY: iframeRect.top + event.clientY,
+      });
+    });
+    return btn;
+  }
+
+  _showInsertButtonsFor(el) {
+    if (this.previewMode) return;
+    this._ensureInsertAffordances();
+    this._cancelHideInsertButtons();
+    this._hoverUid = el.getAttribute(SPROUT_UID_ATTR);
+
+    const rect = el.getBoundingClientRect();
+    const size = 22;
+    this._insertAbove.style.top = `${rect.top - size / 2}px`;
+    this._insertAbove.style.left = `${rect.left + rect.width / 2 - size / 2}px`;
+    this._insertBelow.style.top = `${rect.bottom - size / 2}px`;
+    this._insertBelow.style.left = `${rect.left + rect.width / 2 - size / 2}px`;
+    this._insertAbove.classList.add('is-visible');
+    this._insertBelow.classList.add('is-visible');
+  }
+
+  _scheduleHideInsertButtons() {
+    clearTimeout(this._hideInsertTimeout);
+    this._hideInsertTimeout = setTimeout(() => this._hideInsertButtons(), 250);
+  }
+
+  _cancelHideInsertButtons() {
+    clearTimeout(this._hideInsertTimeout);
+  }
+
+  _hideInsertButtons() {
+    this._insertAbove?.classList.remove('is-visible');
+    this._insertBelow?.classList.remove('is-visible');
+  }
+
+  /**
+   * Materializes one new element in the LIVE preview only — the mirror of
+   * services/html-utils.js applyInsertionsToDocument(), kept as a separate
+   * implementation on purpose, same as every other preview/save pair in this
+   * codebase (the preview DOM's asset URLs are rewritten for display and
+   * must never leak into what gets saved).
+   * @param {{uid: string, anchorUid: string, position: 'before'|'after'|'prepend'|'append', tag: string, kind?: string}} insertion
+   */
+  insertElement({ uid, anchorUid, position, tag, kind }) {
+    const anchor = this.getElementByUid(anchorUid);
+    if (!anchor) return null;
+
+    const el = this.doc.createElement(tag);
+    el.setAttribute(SPROUT_UID_ATTR, uid);
+    // MODE 2 pages only recognize editable elements via data-sprout — see
+    // the matching comment in html-utils.js applyInsertionsToDocument().
+    if (this.useSproutMode && kind) el.setAttribute(SPROUT_ATTR, kind);
+
+    if (position === 'before') anchor.parentNode?.insertBefore(el, anchor);
+    else if (position === 'after') anchor.parentNode?.insertBefore(el, anchor.nextSibling);
+    else if (position === 'prepend') anchor.insertBefore(el, anchor.firstChild);
+    else anchor.appendChild(el); // 'append' (default) — anchor is expected to be a container
+
+    if (kind !== SPROUT_KINDS.CONTAINER) this._wireOne(el);
+
+    return el;
+  }
+
+  /** Removes a previously-inserted element from the live preview (undo of insertElement). */
+  removeElement(uid) {
+    this._hideInsertButtons();
+    this.getElementByUid(uid)?.remove();
   }
 
   select(uid) {
@@ -304,7 +474,10 @@ export class Canvas {
     this.previewMode = enabled;
     if (!this.doc) return;
     this.doc.documentElement.classList.toggle('sprout-preview-mode', enabled);
-    if (enabled) this.deselect();
+    if (enabled) {
+      this.deselect();
+      this._hideInsertButtons();
+    }
   }
 
   /** Scroll to (and select) the first editable element matching a sidebar category. */

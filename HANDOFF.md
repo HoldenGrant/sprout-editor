@@ -68,6 +68,13 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   field, see README's Architecture notes). A section styled that way shows a hint
   instead of the actual value; typing a new URL still works, it just starts from blank
   rather than the current one.
+- **No delete.** Elements can be inserted (2026-08-25) but not removed — undoing right
+  after inserting is the only way back. Not started, and not just a small add-on:
+  removing an *original* (non-inserted) element would need its own structural-diff
+  representation in the save/undo model, distinct from `insertions`.
+- **Insert palette is fixed, not generic.** Paragraph/Heading/Button/Image/Container
+  only — no arbitrary-tag or custom-HTML insertion, and no way for a site owner to
+  extend the palette themselves yet.
 
 ## Key decisions worth knowing before changing things
 
@@ -106,12 +113,23 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   canvas.** Resist the urge to "simplify" by wiring hover/click for them the same way as
   text/button/image — that's exactly the every-`<div>`-is-clickable noise the leaf-only
   smart-detection rule was designed to avoid. The Layers panel is the deliberate,
-  separate way in.
+  separate way in. This held through adding element-insertion (2026-08-25) on purpose:
+  canvas's hover + buttons only ever appear on non-container elements (`_wireOne` is
+  never called for a CONTAINER-kind element, insertable ones included) — a container you
+  just inserted from canvas still only gets a Layers-panel + afterward, same as any
+  other container.
 - **`data-sprout-uid` and `data-sprout-layer-id` are intentionally two different
   numbering schemes**, not one reused for both purposes — see the note at the top of
   `editor/layers.js`. Collapsing them would either flood the editable-uid system with
   every non-editable wrapper on the page, or leave the Layers tree unable to reference
   anything that isn't independently editable.
+- **`state.insertions` and `state.edits` are deliberately two separate lists, not one
+  merged model.** `edits` only ever means "text/attr/style change to a uid that already
+  exists"; `insertions` only ever means "create this new element here." Save replays
+  `insertions` first (see `applyInsertionsToDocument`) so `edits` can then treat every
+  uid uniformly whether it's original or freshly inserted. Don't fold insertion into the
+  edits map to "simplify" it — the replay order (structure before content) is load
+  bearing, same category of thing as save always re-parsing the pristine original HTML.
 
 ## Reference material
 

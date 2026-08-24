@@ -132,3 +132,49 @@ export function mimeTypeForPath(path) {
   const ext = path.split('.').pop().toLowerCase();
   return EXT_MIME_MAP[ext] || 'application/octet-stream';
 }
+
+// Prefix for uids assigned to elements the user inserts (as opposed to
+// SPROUT_UID_ATTR's plain incrementing integers, assigned deterministically
+// to elements that were already in the original document — see
+// html-utils.js). Keeping the two schemes visually distinct makes it
+// impossible to accidentally collide, and makes "is this an original or
+// inserted element" obvious from the uid alone when debugging.
+export const INSERTED_UID_PREFIX = 'new-';
+
+// A small neutral gray placeholder (self-contained data: URI, no network
+// fetch) shown in a newly-inserted Image element until the user sets a real
+// one via the Inspector.
+export const PLACEHOLDER_IMAGE_SRC =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">' +
+      '<rect width="400" height="300" fill="#e2e5e9"/>' +
+      '<path d="M120 210 170 150 210 190 260 120 300 210Z" fill="#b6bcc4"/>' +
+      '<circle cx="150" cy="110" r="20" fill="#b6bcc4"/>' +
+      '</svg>'
+  );
+
+// The small, fixed set of element types insertable via the "+" affordance in
+// canvas and the Layers panel (see editor/insert-menu.js). Kept deliberately
+// small for v1 rather than a generic drag-in-anything builder — see
+// HANDOFF.md's "Key decisions" for why.
+export const INSERT_PALETTE = [
+  { id: 'paragraph', label: 'Paragraph', tag: 'p', kind: SPROUT_KINDS.TEXT, initialText: 'New paragraph text.' },
+  { id: 'heading', label: 'Heading', tag: 'h2', kind: SPROUT_KINDS.TEXT, initialText: 'New heading' },
+  {
+    id: 'button',
+    label: 'Button / Link',
+    tag: 'a',
+    kind: SPROUT_KINDS.BUTTON,
+    initialText: 'Click here',
+    initialAttrs: { href: '#' },
+  },
+  {
+    id: 'image',
+    label: 'Image',
+    tag: 'img',
+    kind: SPROUT_KINDS.IMAGE,
+    initialAttrs: { src: PLACEHOLDER_IMAGE_SRC, alt: 'New image' },
+  },
+  { id: 'container', label: 'Container (empty section)', tag: 'div', kind: SPROUT_KINDS.CONTAINER },
+];

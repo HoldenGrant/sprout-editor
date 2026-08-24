@@ -11,13 +11,17 @@
 //      inspector-driven attribute/style changes) AND every user-made change
 //      is *also* recorded into an `edits` map keyed by uid.
 //   2. SAVE: we re-parse the ORIGINAL, untouched HTML string from scratch,
-//      re-assign the same deterministic uids, replay only the `edits` map
-//      on top, then serialize. This guarantees rewritten preview URLs
-//      (data: URIs) can never leak into what gets committed back to GitHub —
-//      the save path never even looks at the live iframe DOM.
-// Uid assignment is deterministic (document-order walk over the same string)
-// and edits in v1 never add/remove nodes, so the same uids line up correctly
-// between the two lifecycles.
+//      re-assign the same deterministic uids, replay `insertions` then
+//      `edits` on top, then serialize. This guarantees rewritten preview
+//      URLs (data: URIs) can never leak into what gets committed back to
+//      GitHub — the save path never even looks at the live iframe DOM.
+// Uid assignment is deterministic (document-order walk over the same
+// string), so the same uids for ORIGINAL elements line up correctly between
+// the two lifecycles. Elements the user INSERTS get their own uids (a
+// distinct INSERTED_UID_PREFIX scheme, assigned in editor.js) and are
+// recorded structurally in `insertions` (see applyInsertionsToDocument) —
+// deliberately kept separate from `edits`, which only ever describes
+// text/attr/style changes to a uid that already exists.
 
 import {
   SMART_TEXT_TAGS,
@@ -176,6 +180,46 @@ export function applyCssUrlReplacements(cssText, replacements) {
 }
 
 /**
+ * Materialize the user's recorded element insertions into a freshly-tagged
+ * document. Must run BEFORE applyEditsToDocument(): insertions create the
+ * structure (new elements), edits populate it (text/attrs/styles on uids
+ * that may include ones just created here). Each new element is registered
+ * into the SAME registry passed in, exactly like an original-document
+ * element, so both a later insertion anchored on this one and
+ * applyEditsToDocument's uid lookups find it uniformly — callers never need
+ * to know which uids are original vs inserted.
+ * @param {Document} doc
+ * @param {Map<string, Element>} registry
+ * @param {Array<{uid: string, anchorUid: string, position: 'before'|'after'|'prepend'|'append', tag: string, kind?: string}>} insertions
+ * @param {boolean} useSproutMode
+ */
+export function applyInsertionsToDocument(doc, registry, insertions, useSproutMode) {
+  for (const insertion of insertions) {
+    const anchor = registry.get(insertion.anchorUid);
+    if (!anchor) continue; // anchor no longer exists (shouldn't happen — v1 never removes original elements)
+
+    const el = doc.createElement(insertion.tag);
+    // MODE 2 pages only recognize editable elements via the data-sprout
+    // attribute — without this, a newly-inserted plain <p> would be
+    // invisible to getEditableKind() on such a page (see its MODE 2 branch).
+    if (useSproutMode && insertion.kind) el.setAttribute(SPROUT_ATTR, insertion.kind);
+
+    if (insertion.position === 'before') {
+      anchor.parentNode?.insertBefore(el, anchor);
+    } else if (insertion.position === 'after') {
+      anchor.parentNode?.insertBefore(el, anchor.nextSibling);
+    } else if (insertion.position === 'prepend') {
+      anchor.insertBefore(el, anchor.firstChild);
+    } else {
+      // 'append' (default) — anchor is expected to be a container.
+      anchor.appendChild(el);
+    }
+
+    registry.set(insertion.uid, el);
+  }
+}
+
+/**
  * Apply the user's recorded edits onto a freshly-tagged document (used both
  * to refresh the live preview after undo/redo, and — critically — to build
  * the final HTML that gets saved to GitHub).
@@ -184,7 +228,7 @@ export function applyCssUrlReplacements(cssText, replacements) {
 export function applyEditsToDocument(registry, edits) {
   for (const [uid, edit] of edits.entries()) {
     const el = registry.get(uid);
-    if (!el) continue; // element no longer present (shouldn't happen in v1, no structural edits)
+    if (!el) continue; // element not in the registry — an edit for a removed/never-inserted uid, ignore it
 
     if (typeof edit.text === 'string') {
       el.textContent = edit.text;
@@ -234,13 +278,14 @@ export function serializeDocument(doc) {
 }
 
 /**
- * The full save pipeline: parse the pristine original HTML fresh, replay the
- * edits map on top, strip editor artifacts, and serialize. Never touches the
- * live (asset-URL-rewritten) preview DOM.
+ * The full save pipeline: parse the pristine original HTML fresh, replay
+ * insertions then edits on top, strip editor artifacts, and serialize. Never
+ * touches the live (asset-URL-rewritten) preview DOM.
  */
-export function serializeForSave(originalHtml, edits) {
+export function serializeForSave(originalHtml, edits, insertions = []) {
   const doc = parseHtmlDocument(originalHtml);
-  const { registry } = tagEditableElements(doc);
+  const { registry, useSproutMode } = tagEditableElements(doc);
+  applyInsertionsToDocument(doc, registry, insertions, useSproutMode);
   applyEditsToDocument(registry, edits);
   stripEditorArtifacts(doc);
   return serializeDocument(doc);

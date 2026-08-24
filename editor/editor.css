@@ -358,6 +358,79 @@ textarea:focus-visible,
   font-weight: 600;
 }
 
+.sprout-layer-add {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--sprout-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Reserved space always (matches the toggle/spacer pattern above) so
+   * hovering a row doesn't shift its neighbors — only opacity toggles. */
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.sprout-layer-row-head:hover .sprout-layer-add,
+.sprout-layer-add:focus-visible {
+  opacity: 1;
+}
+
+.sprout-layer-add:hover {
+  background: var(--sprout-green);
+  color: #fff;
+}
+
+.sprout-layer-add:focus-visible {
+  outline: none;
+  box-shadow: var(--sprout-focus-ring);
+}
+
+/* ---------- Insert-type menu (editor/insert-menu.js) ---------- */
+
+.sprout-insert-menu {
+  position: fixed;
+  z-index: 300;
+  min-width: 190px;
+  padding: 6px;
+  background: var(--sprout-panel-bg);
+  border: 1px solid var(--sprout-border);
+  border-radius: var(--sprout-radius);
+  box-shadow: var(--sprout-shadow), 0 8px 24px rgba(16, 24, 40, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sprout-insert-menu__item {
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--sprout-text);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.sprout-insert-menu__item:hover {
+  background: var(--sprout-bg);
+}
+
+.sprout-insert-menu__item:focus-visible {
+  outline: none;
+  box-shadow: var(--sprout-focus-ring);
+}
+
 /* ---------- Canvas ---------- */
 
 .sprout-canvas-wrap {

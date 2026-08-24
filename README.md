@@ -56,6 +56,7 @@ sprout-editor/
 │   ├── inspector.js                 # right-panel edit controls
 │   ├── sidebar.js                   # left-panel element categories
 │   ├── layers.js                    # left-panel DOM tree, synced with canvas selection
+│   ├── insert-menu.js               # the "+" element-type picker, shared by canvas & layers
 │   └── history.js                   # undo/redo command stack
 ├── services/
 │   ├── github-api.js                # Contents API: get/update file
@@ -124,6 +125,9 @@ site, not part of the loadable extension itself.)
      selecting something in canvas auto-expands whatever branch it's inside
    - Use the **file dropdown** in the toolbar to switch to another `.html` file in the
      same repo without leaving the tab
+   - Hover any text/button/image and click the green **+** above or below it — or click
+     a row's own **+** in the Layers panel — to add a new element (see "Adding
+     elements" below)
    - **Ctrl/Cmd+Z** / **Ctrl/Cmd+Shift+Z** to undo/redo
    - **Save to GitHub** → confirm the commit message → **Save Changes**
 
@@ -145,6 +149,26 @@ site, not part of the loadable extension itself.)
   individually clickable would be exactly the noise the leaf-only rule above is
   designed to avoid; the Layers panel is the deliberate way to reach a specific section
   without that. See `CONTAINER_TAGS` in `shared/constants.js`.
+
+## Adding elements
+
+Two ways to insert a new element, both opening the same small picker (Paragraph,
+Heading, Button/Link, Image, or an empty Container):
+
+- **Canvas**: hover any text/button/image and a green **+** appears above and below it —
+  click either to insert a new sibling there.
+- **Layers panel**: every row with a uid (i.e. anything Inspector can show controls for)
+  gets its own **+** on hover. On a container row it means "add inside me" (appended as
+  the last child); on anything else it means "add a new sibling right after me."
+
+Whatever you pick is immediately selected with a sensible placeholder (a new paragraph
+starts in-place editable so you can just start typing over "New paragraph text."), and
+participates in undo/redo and save exactly like anything already on the page — see
+`services/html-utils.js` `applyInsertionsToDocument` for how a fresh element gets
+correctly positioned when replayed onto the pristine original HTML at save time.
+
+Kept to a small fixed palette on purpose for v1, rather than a generic drag-in-anything
+builder — see `shared/constants.js` `INSERT_PALETTE`.
 
 ## Smart handling for script-dependent sites
 
@@ -191,14 +215,29 @@ patterns get handled anyway:
   call, which GitHub caps for very large repos (`truncated: true` in the response) — in
   that case the switcher just won't list every `.html` file. Loading/saving the file
   already open is unaffected.
+- **No delete.** You can add an element (see "Adding elements") but there's no "remove
+  this element" affordance yet — undoing right after inserting is the only way back.
+  Removing an *existing* (non-inserted) element isn't supported at all in v1.
+- The insert palette is a small fixed set (Paragraph, Heading, Button/Link, Image,
+  Container) — not a generic "insert any tag/any HTML" builder.
 
 ## Architecture notes
 
 - **Two DOM lifecycles, one source of truth.** The live preview iframe has its local
   asset URLs (images, stylesheets) rewritten to `data:` URIs so they render — but saving
-  always re-parses the pristine original HTML string and replays only the recorded
-  `edits` map onto it, so rewritten preview URLs can never leak into a commit. See the
-  top of `services/html-utils.js`.
+  always re-parses the pristine original HTML string and replays `insertions` then the
+  recorded `edits` map onto it, so rewritten preview URLs can never leak into a commit.
+  See the top of `services/html-utils.js`.
+- **Insertions are structural, edits are not — two separate lists on purpose.**
+  `state.edits` only ever describes text/attr/style changes to a uid that already
+  exists; `state.insertions` separately records "create this new element, here" (tag +
+  which existing/inserted uid to anchor on + before/after/prepend/append). Save replays
+  `insertions` first so a later insertion's anchor — even one that's itself a
+  same-session insertion — can always be found, then replays `edits` on top, uniformly,
+  since inserted elements get registered into the same uid→element lookup as original
+  ones. Undoing an insertion removes the element *and* deletes any edits entry for its
+  uid (see `editor.js` `applyInsertCommand`) — a stray edits entry for a uid nothing
+  points to anymore would just be dead weight, never actually reachable at save time.
 - **Content-script detection makes zero network calls.** URL parsing runs on every
   GitHub page load; all GitHub API usage is deferred until the user actually clicks
   "Edit with Sprout".

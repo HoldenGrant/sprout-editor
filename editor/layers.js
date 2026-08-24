@@ -4,14 +4,18 @@
 // DOM structure (in the spirit of Elementor's Navigator), synced
 // bidirectionally with canvas selection: clicking a row scrolls to and
 // selects that element in the preview; selecting something in the preview
-// highlights the matching row here. Purely a navigation aid — it never
-// edits anything itself, Inspector still owns all actual editing.
+// highlights the matching row here. Mostly a navigation aid — Inspector
+// still owns all text/attr/style editing — except for one thing: each row's
+// own + button, the other way (besides canvas's hover buttons) to insert a
+// new element (see onInsertRequest / editor.js's handleInsertRequest).
 //
 // Every element the tree includes gets a data-sprout-layer-id, a SEPARATE
 // numbering scheme from html-utils.js's data-sprout-uid. Layer ids cover
 // every structural element (divs, sections, ...), not just the ones smart
 // detection or data-sprout marks as editable — uid keeps its narrower
 // meaning ("this element has Inspector controls") unchanged.
+
+import { SPROUT_UID_ATTR, CONTAINER_TAGS } from '../shared/constants.js';
 
 export const LAYER_ID_ATTR = 'data-sprout-layer-id';
 
@@ -21,18 +25,24 @@ const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'LINK', 'META', 'NOSCRIPT', 'TEMPL
 export class Layers {
   /**
    * @param {HTMLElement} container
-   * @param {{ onSelect: (layerId: string) => void }} handlers
+   * @param {{
+   *   onSelect: (layerId: string) => void,
+   *   onInsertRequest: (info: {anchorUid: string, position: string, clientX: number, clientY: number}) => void,
+   * }} handlers
    */
-  constructor(container, { onSelect }) {
+  constructor(container, { onSelect, onInsertRequest }) {
     this.container = container;
     this.onSelect = onSelect;
+    this.onInsertRequest = onInsertRequest;
     this.doc = null;
   }
 
   /**
-   * Rebuild the tree from the current canvas document. Call once after every
-   * file load/switch — the tree doesn't need to track content edits, since
-   * v1 never adds or removes elements, only changes text/attrs/styles.
+   * Rebuild the tree from the current canvas document. Called after every
+   * file load/switch AND after every insertion (editor.js) — a rebuild is
+   * simplest/most-correct way to reflect a structural change, given the tree
+   * has to re-walk the DOM in document order to stay correct regardless of
+   * where the change happened.
    */
   rebuild(doc) {
     this.doc = doc;
@@ -108,6 +118,33 @@ export class Layers {
       label.textContent = this._describe(el);
       label.addEventListener('click', () => this.onSelect?.(layerId));
       head.appendChild(label);
+
+      // Only rows with a real uid can anchor an insertion — uid is the only
+      // id scheme the save-replay pipeline understands (see
+      // services/html-utils.js applyInsertionsToDocument); a layer-id-only
+      // row (a non-editable, non-container wrapper with no uid at all)
+      // can't be represented there, so it simply doesn't get a + button.
+      if (el.hasAttribute(SPROUT_UID_ATTR)) {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'sprout-layer-add';
+        addBtn.setAttribute('aria-label', `Add an element ${CONTAINER_TAGS.includes(el.tagName) ? 'inside' : 'after'} this one`);
+        addBtn.textContent = '+';
+        addBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          this.onInsertRequest?.({
+            anchorUid: el.getAttribute(SPROUT_UID_ATTR),
+            // A container's natural "+" means "add inside me"; anything
+            // else means "add a new sibling right after me" — matches the
+            // canvas hover buttons' before/after siblings, just phrased for
+            // a container's own affordance being a single button, not two.
+            position: CONTAINER_TAGS.includes(el.tagName) ? 'append' : 'after',
+            clientX: event.clientX,
+            clientY: event.clientY,
+          });
+        });
+        head.appendChild(addBtn);
+      }
 
       li.appendChild(head);
 
