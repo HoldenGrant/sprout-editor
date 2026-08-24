@@ -60,19 +60,19 @@ export class Inspector {
 
     this.container.appendChild(
       this._numberField('Font size', 'px', this._currentPx(el, 'fontSize'), (value) => {
-        this._applyStyle(uid, el, 'font-size', value ? `${value}px` : '');
+        this._applyStyle(uid, 'font-size', value ? `${value}px` : '');
       })
     );
 
     this.container.appendChild(
       this._colorField('Text color', this._currentColor(el, 'color'), (value) => {
-        this._applyStyle(uid, el, 'color', value);
+        this._applyStyle(uid, 'color', value);
       })
     );
 
     this.container.appendChild(
       this._alignmentField(getComputedStyle(el).textAlign, (value) => {
-        this._applyStyle(uid, el, 'text-align', value);
+        this._applyStyle(uid, 'text-align', value);
       })
     );
   }
@@ -94,19 +94,19 @@ export class Inspector {
 
     this.container.appendChild(
       this._colorField('Background color', this._currentColor(el, 'backgroundColor'), (value) => {
-        this._applyStyle(uid, el, 'background-color', value);
+        this._applyStyle(uid, 'background-color', value);
       })
     );
 
     this.container.appendChild(
       this._colorField('Text color', this._currentColor(el, 'color'), (value) => {
-        this._applyStyle(uid, el, 'color', value);
+        this._applyStyle(uid, 'color', value);
       })
     );
 
     this.container.appendChild(
       this._rangeField('Border radius', 'px', 0, 48, this._currentPx(el, 'borderRadius'), (value) => {
-        this._applyStyle(uid, el, 'border-radius', `${value}px`);
+        this._applyStyle(uid, 'border-radius', `${value}px`);
       })
     );
   }
@@ -127,13 +127,13 @@ export class Inspector {
 
     this.container.appendChild(
       this._numberField('Width', 'px', this._currentPx(el, 'width'), (value) => {
-        this._applyStyle(uid, el, 'width', value ? `${value}px` : '');
+        this._applyStyle(uid, 'width', value ? `${value}px` : '');
       })
     );
 
     this.container.appendChild(
       this._numberField('Border radius', 'px', this._currentPx(el, 'borderRadius'), (value) => {
-        this._applyStyle(uid, el, 'border-radius', value ? `${value}px` : '');
+        this._applyStyle(uid, 'border-radius', value ? `${value}px` : '');
       })
     );
   }
@@ -149,7 +149,7 @@ export class Inspector {
 
     this.container.appendChild(
       this._colorField('Background color', this._currentColor(el, 'backgroundColor'), (value) => {
-        this._applyStyle(uid, el, 'background-color', value);
+        this._applyStyle(uid, 'background-color', value);
       })
     );
 
@@ -162,7 +162,7 @@ export class Inspector {
     const hasComputedBgImage = !inlineBgImage && getComputedStyle(el).backgroundImage !== 'none';
     this.container.appendChild(
       this._textField('Background image URL', inlineBgImage, (value) => {
-        this._applyStyle(uid, el, 'background-image', value ? `url("${value}")` : '');
+        this._applyStyle(uid, 'background-image', value ? `url("${value}")` : '');
       })
     );
     if (hasComputedBgImage) {
@@ -178,22 +178,33 @@ export class Inspector {
 
     this.container.appendChild(
       this._numberField('Padding', 'px', this._currentPx(el, 'paddingTop'), (value) => {
-        this._applyStyle(uid, el, 'padding', value ? `${value}px` : '');
+        this._applyStyle(uid, 'padding', value ? `${value}px` : '');
       })
     );
 
     this.container.appendChild(
       this._numberField('Margin', 'px', this._currentPx(el, 'marginTop'), (value) => {
-        this._applyStyle(uid, el, 'margin', value ? `${value}px` : '');
+        this._applyStyle(uid, 'margin', value ? `${value}px` : '');
       })
     );
   }
 
   // ---------- Shared helpers ----------
 
-  _applyStyle(uid, el, prop, value) {
-    if (value) el.style.setProperty(prop, value);
-    else el.style.removeProperty(prop);
+  /**
+   * Reports a style change intent — deliberately does NOT touch the DOM
+   * itself. editor.js's handleStyleChange needs to read the element's
+   * *pre-edit* inline style value first (to know what "before" was, for
+   * undo/redo and for deciding whether anything actually changed) before
+   * canvas.js applies the new value. Mutating el.style here, before that
+   * read happens, would make every first edit to a style field look like a
+   * no-op (before === after, since the DOM was already changed) — it would
+   * still *look* right in the live canvas, but silently never get recorded
+   * into state.edits, so it would never actually be saved. This bit Sprout
+   * for real: the Alignment control appeared to work but the choice never
+   * survived a save. See editor.js's getFieldBaseline() style branch.
+   */
+  _applyStyle(uid, prop, value) {
     this.onStyleChange(uid, prop, value);
   }
 

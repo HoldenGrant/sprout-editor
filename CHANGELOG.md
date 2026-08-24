@@ -3,6 +3,24 @@
 All notable changes to Sprout Editor, in the order they happened. Dates are when each
 change landed in this repo.
 
+## 2026-08-25
+
+### Fixed
+- **Every style-panel edit silently failed to save on its first change to a given field.**
+  Reported as "Alignment doesn't save," but the same bug affected font size, text/button
+  colors, border radius, spacing, and container backgrounds — anything driven by
+  Inspector's `_applyStyle` helper. `inspector.js` was mutating the live element's inline
+  style directly *before* handing off to `editor.js`, which then computed "what was this
+  before the edit" by reading that same live inline style — already changed to the *new*
+  value by that point. `before === after` came out true, so `editor.js` treated it as a
+  no-op and never wrote it into `state.edits` — invisible in the UI (the canvas already
+  looked right, because Inspector had mutated it directly) but the change was never in
+  `state.edits`, so it never survived a save. Fixed by having Inspector only report the
+  intent (`onStyleChange`) and never touch the DOM itself — `editor.js`/`canvas.js`
+  already were, and still are, the only place a style change actually gets applied, now
+  in the correct order. Verified with a standalone simulation of the exact before/after
+  comparison against both the old and new call order.
+
 ## 2026-08-22
 
 ### Added

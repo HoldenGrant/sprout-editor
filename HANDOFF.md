@@ -9,7 +9,10 @@ history — this file is the "state of the world right now" summary.
 The extension is fully functional and has been verified against the real
 `HoldenGrant/sprout` repo (a live child care business site): load, edit, undo/redo,
 save-as-commit, switch between files, browse/collapse the Layers panel, and edit
-section/div backgrounds — all confirmed working end-to-end.
+section/div backgrounds — all confirmed working end-to-end as of the 2026-08-25 style-save
+fix (see below — earlier claims of this being "confirmed working" for any Inspector style
+field, backgrounds included, predate that fix and weren't actually true for the save half
+of it).
 
 It is **not** on the Chrome Web Store yet — still `chrome://extensions` → Load unpacked
 only. See `docs/webstore/submission-checklist.md` for exactly what's left, and note that
@@ -39,6 +42,10 @@ failures on the real test repo, not hypothetically:
   fixed
 - The device-flow sign-in code being generated correctly but never visually appearing
   (a CSS specificity bug)
+- Every Inspector style field (alignment, font size, colors, border radius, spacing,
+  container backgrounds) silently never surviving a save on its first edit — the canvas
+  looked right, so it went unnoticed until an actual save+reload was checked. Root cause
+  and fix in `CHANGELOG.md`'s 2026-08-25 entry.
 
 See `CHANGELOG.md` for the full list with technical detail on each.
 
@@ -87,6 +94,14 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   live (asset-URL-rewritten) preview DOM — see the top-of-file comment in
   `services/html-utils.js`. This is the single most load-bearing piece of the
   architecture; don't shortcut it even for a quick fix.
+- **`inspector.js` must never mutate the DOM itself — it only reports intent.**
+  `editor.js`/`canvas.js` are the only place a change actually gets applied, specifically
+  *because* `editor.js` needs to read an element's pre-edit value before anything
+  changes it, to know what "before" was. `inspector.js` briefly violated this (its own
+  header comment said otherwise) for style edits specifically, mutating `el.style`
+  directly before handing off — every first style edit to a field silently failed to
+  save as a result (2026-08-25 fix, see `CHANGELOG.md`). If a future field type is added
+  to Inspector, route it through `onTextChange`/`onAttrChange`/`onStyleChange` only.
 - **Containers are editable (uid'd, in the save/undo pipeline) but never clickable in
   canvas.** Resist the urge to "simplify" by wiring hover/click for them the same way as
   text/button/image — that's exactly the every-`<div>`-is-clickable noise the leaf-only
