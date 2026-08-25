@@ -86,6 +86,9 @@
     .status-box.success, #statusMessage.success { display: block; background: #eaf7ec; color: #1a7431; border: 1px solid #c9ecd0; }
     .status-box.error, #statusMessage.error { display: block; background: #fff1f0; color: #d1242f; border: 1px solid #ffd7d5; }
     .status-box.info { display: block; background: #eef4ff; color: #1d4ed8; border: 1px solid #c7d9fb; }
+    .status-box a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+    .status-box a:hover { text-decoration-thickness: 2px; }
+    .status-box a:focus-visible { outline: none; box-shadow: var(--sprout-focus-ring); border-radius: 3px; }
     .token-state { font-size: 11px; color: var(--sprout-text-muted); margin-top: 6px; }
     .device-code {
       font-family: ui-monospace, SFMono-Regular, monospace;

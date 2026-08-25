@@ -54,6 +54,10 @@ change landed in this repo.
   (grid items don't margin-collapse the way block children do). A hint appears if the
   container's layout is already grid-based via the page's own CSS, matching the existing
   background-image field's same INLINE-only-read reasoning.
+- **The device-flow "Go to https://github.com/login/device" step is now a real link.**
+  Was plain text in the connect-status box — had to be copy-pasted or retyped by hand.
+  `options.js` `showConnectStatus()` now optionally splits the one occurrence of a given
+  URL out of the message and renders it as an actual `<a target="_blank">` instead.
 
 ### Fixed
 - **Button/Link alignment did nothing, visually, no matter what you clicked.** Shipped

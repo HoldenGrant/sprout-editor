@@ -88,7 +88,7 @@ async function handleConnectClick() {
         showConnectStatus(
           `1. Go to ${verificationUri}\n2. Enter this code:`,
           'info',
-          userCode
+          { code: userCode, linkUrl: verificationUri, linkText: verificationUri }
         );
       },
       onPolling: () => {
@@ -136,12 +136,32 @@ function showInstallPrompt(login) {
   els.connectStatus.appendChild(link);
 }
 
-function showConnectStatus(message, type, code) {
+/**
+ * @param {{ code?: string, linkUrl?: string, linkText?: string }} [extra]
+ *   linkUrl/linkText turn the one occurrence of linkText inside `message`
+ *   into a real clickable <a> instead of plain text nobody can click —
+ *   e.g. the device-flow "Go to https://github.com/login/device" step.
+ */
+function showConnectStatus(message, type, { code, linkUrl, linkText } = {}) {
   els.connectStatus.className = `status-box ${type}`;
   els.connectStatus.innerHTML = '';
   const text = document.createElement('div');
   text.style.whiteSpace = 'pre-line';
-  text.textContent = message;
+
+  if (linkUrl && linkText && message.includes(linkText)) {
+    const [before, after] = message.split(linkText);
+    text.appendChild(document.createTextNode(before));
+    const link = document.createElement('a');
+    link.href = linkUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = linkText;
+    text.appendChild(link);
+    text.appendChild(document.createTextNode(after));
+  } else {
+    text.textContent = message;
+  }
+
   els.connectStatus.appendChild(text);
   if (code) {
     const codeBox = document.createElement('div');
