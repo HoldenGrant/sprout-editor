@@ -22,6 +22,9 @@
       <g id="icon-image"><rect x="2" y="3" width="14" height="12" rx="2"/><circle cx="6.5" cy="7.5" r="1.4"/><path d="M2 13l4-4 3 3 3-4 4 5"/></g>
       <g id="icon-button"><rect x="3" y="6" width="12" height="6" rx="3"/><circle cx="9" cy="9" r="1"/></g>
       <g id="icon-footer"><rect x="2" y="2" width="14" height="14" rx="2"/><line x1="2" y1="12" x2="16" y2="12"/></g>
+      <g id="icon-code"><path d="M6 5 2 9l4 4"/><path d="M12 5l4 4-4 4"/></g>
+      <g id="icon-copy"><rect x="6" y="6" width="9" height="9" rx="1.5"/><path d="M4 11V4a1 1 0 0 1 1-1h7"/></g>
+      <g id="icon-check"><path d="M4 9.5l3 3 7-7"/></g>
     </defs>
   </svg>
 
@@ -51,6 +54,10 @@
           <svg class="sprout-icon sprout-icon--eye" viewBox="0 0 18 18"><use href="#icon-eye"/></svg>
           <svg class="sprout-icon sprout-icon--eye-off" viewBox="0 0 18 18"><use href="#icon-eye-off"/></svg>
           <span id="previewBtnLabel">Preview</span>
+        </button>
+        <button id="codeViewBtn" class="sprout-btn" title="View the HTML this will save" disabled>
+          <svg class="sprout-icon" viewBox="0 0 18 18"><use href="#icon-code"/></svg>
+          Code
         </button>
         <button id="saveBtn" class="sprout-btn sprout-btn--primary" disabled>
           Save to GitHub
@@ -125,6 +132,27 @@
       <div class="sprout-modal__actions">
         <button id="saveModalCancel" class="sprout-btn">Cancel</button>
         <button id="saveModalConfirm" class="sprout-btn sprout-btn--primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code view modal -->
+  <div id="codeViewModal" class="sprout-modal-backdrop sprout-hidden">
+    <div class="sprout-modal sprout-modal--wide">
+      <div class="sprout-code-view__header">
+        <h2>View Code</h2>
+        <button id="codeViewCopyBtn" class="sprout-btn" type="button" title="Copy all code">
+          <svg class="sprout-icon copy-icon copy-icon--copy" viewBox="0 0 18 18"><use href="#icon-copy"/></svg>
+          <svg class="sprout-icon copy-icon copy-icon--check" viewBox="0 0 18 18"><use href="#icon-check"/></svg>
+          <span id="codeViewCopyLabel">Copy</span>
+        </button>
+      </div>
+      <p class="sprout-code-view__hint">
+        What would be saved right now, including any unsaved changes — read-only.
+      </p>
+      <pre class="sprout-code-view__pre"><code id="codeViewCode"></code></pre>
+      <div class="sprout-modal__actions">
+        <button id="codeViewCloseBtn" class="sprout-btn sprout-btn--primary" type="button">Close</button>
       </div>
     </div>
   </div>

@@ -18,6 +18,7 @@ import { initSidebar } from './sidebar.js';
 import { Layers, LAYER_ID_ATTR } from './layers.js';
 import { HistoryStack, attachHistoryKeyboardShortcuts } from './history.js';
 import { openInsertMenu } from './insert-menu.js';
+import { highlightHtml } from './code-highlight.js';
 
 // ---------- DOM references ----------
 
@@ -29,6 +30,12 @@ const els = {
   redoBtn: document.getElementById('redoBtn'),
   previewBtn: document.getElementById('previewBtn'),
   previewBtnLabel: document.getElementById('previewBtnLabel'),
+  codeViewBtn: document.getElementById('codeViewBtn'),
+  codeViewModal: document.getElementById('codeViewModal'),
+  codeViewCode: document.getElementById('codeViewCode'),
+  codeViewCopyBtn: document.getElementById('codeViewCopyBtn'),
+  codeViewCopyLabel: document.getElementById('codeViewCopyLabel'),
+  codeViewCloseBtn: document.getElementById('codeViewCloseBtn'),
   saveBtn: document.getElementById('saveBtn'),
   statusOverlay: document.getElementById('statusOverlay'),
   statusMessage: document.getElementById('statusMessage'),
@@ -100,6 +107,7 @@ async function init() {
 
   wireToolbar();
   wireSaveModal();
+  wireCodeViewModal();
   els.fileSwitcher.addEventListener('change', handleFileSwitchChange);
   els.statusSettingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
   window.addEventListener('beforeunload', (event) => {
@@ -147,6 +155,7 @@ async function loadFile(fileInfo) {
     const { hiddenPreloaderCount, revealedSlideCount } = await canvas.load(loaded.previewHtml);
     layers.rebuild(canvas.doc);
     hideStatus();
+    els.codeViewBtn.disabled = false;
 
     if (hiddenPreloaderCount > 0) {
       showToast(
@@ -593,6 +602,7 @@ function wireToolbar() {
     // full width for an actual "what a visitor sees" view.
     els.editorBody.classList.toggle('sprout-preview-active', enteringPreview);
   });
+  els.codeViewBtn.addEventListener('click', openCodeViewModal);
   els.saveBtn.addEventListener('click', handleSaveClick);
 }
 
@@ -610,6 +620,58 @@ function markDirty() {
 function clearDirty() {
   state.dirty = false;
   els.dirtyIndicator.classList.add('sprout-hidden');
+}
+
+// ---------- Code view ----------
+//
+// Read-only. Deliberately not an editable textarea that feeds back into
+// state.edits/insertions — going the other way (diffing arbitrary edited
+// HTML text back into the structured edit model) would need a real HTML
+// diffing engine, a much bigger feature than "let me see the code." Always
+// generated fresh from serializeForSave() — the exact same function the
+// real save uses — so what's shown here is genuinely "what would be saved
+// right now," unsaved changes included, never a stale snapshot.
+
+function wireCodeViewModal() {
+  els.codeViewCloseBtn.addEventListener('click', closeCodeViewModal);
+  els.codeViewModal.addEventListener('click', (event) => {
+    if (event.target === els.codeViewModal) closeCodeViewModal();
+  });
+  els.codeViewCopyBtn.addEventListener('click', handleCopyCodeView);
+}
+
+function openCodeViewModal() {
+  if (!state.originalHtml) return; // nothing loaded yet
+  els.codeViewCode.innerHTML = highlightHtml(currentSaveHtml());
+  els.codeViewModal.classList.remove('sprout-hidden');
+}
+
+function closeCodeViewModal() {
+  els.codeViewModal.classList.add('sprout-hidden');
+}
+
+function currentSaveHtml() {
+  return serializeForSave(state.originalHtml, state.edits, state.insertions);
+}
+
+let codeViewCopyResetTimeout;
+
+async function handleCopyCodeView() {
+  clearTimeout(codeViewCopyResetTimeout);
+  try {
+    await navigator.clipboard.writeText(currentSaveHtml());
+    els.codeViewCopyBtn.classList.add('is-copied');
+    els.codeViewCopyLabel.textContent = 'Copied!';
+  } catch {
+    // Clipboard access can be denied — don't pretend it worked (same
+    // reasoning as the device-code copy button in options.js).
+    showToast('Could not copy — your browser blocked clipboard access.', 'error');
+    return;
+  }
+  codeViewCopyResetTimeout = setTimeout(() => {
+    els.codeViewCopyBtn.classList.remove('is-copied');
+    els.codeViewCopyLabel.textContent = 'Copy';
+  }, 1600);
 }
 
 // ---------- Save flow ----------

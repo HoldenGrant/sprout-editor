@@ -6,6 +6,17 @@ change landed in this repo.
 ## 2026-08-25
 
 ### Added
+- **Code View** — a toolbar button opens a read-only modal showing the actual HTML that
+  would be saved right now, unsaved changes included, with a **Copy** button (same
+  copy/checkmark pattern as the device-flow code). Always generated fresh via
+  `serializeForSave()` — the exact function the real save uses — so it's never a stale
+  snapshot; genuinely "what would be saved if you clicked Save Changes right now."
+  Syntax-highlighted by a new, small, dependency-free tokenizer
+  (`editor/code-highlight.js` — no bundled library, matching the project's hand-authored-
+  icons approach) rather than left as a wall of plain text. Deliberately **read-only**,
+  not an editable textarea that feeds back into the edit model — going that direction
+  would need a real HTML diffing engine to turn arbitrary edited text back into
+  `state.edits`/`state.insertions`, a much bigger feature than "let me see the code."
 - **Insert new elements** — a green "+" appears above/below any text, button, or image
   when hovering it in canvas, and every uid'd row in the Layers panel gets its own "+"
   on hover (container rows insert *inside*, everything else inserts a sibling *after*).

@@ -168,6 +168,12 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   its content width instead of stretching full-width like plain `display: block` would.
   Worth remembering for *any* future "move this element via margin" field, not just
   alignment.
+- **Code View is read-only, on purpose — resist making it an editable textarea.**
+  It's always generated fresh from `serializeForSave()`, the exact function the real
+  save uses, so what it shows is genuinely "what would be saved right now." Turning it
+  into free-form editable text that writes back would need a real HTML diffing engine to
+  turn arbitrary edited text into `state.edits`/`state.insertions` again — a fundamentally
+  different, much bigger feature, not a small enhancement of this one.
 
 ## Reference material
 

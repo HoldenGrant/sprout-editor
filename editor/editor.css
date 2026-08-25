@@ -716,6 +716,62 @@ textarea:focus-visible,
   margin-top: 4px;
 }
 
+/* ---------- Code view ---------- */
+
+.sprout-modal--wide {
+  width: min(920px, calc(100vw - 64px));
+}
+
+.sprout-code-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.sprout-code-view__header h2 { margin: 0; }
+
+.sprout-code-view__hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--sprout-text-muted);
+}
+
+.sprout-code-view__pre {
+  margin: 0 0 16px;
+  padding: 14px;
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--sprout-bg);
+  border: 1px solid var(--sprout-border);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* Syntax colors — "cv-" for "code view", so they can't collide with any
+ * other class in the page (including the loaded site's own CSS, since this
+ * <pre> renders in the parent document, not the sandboxed iframe). */
+.cv-tag { color: var(--sprout-green-dark); font-weight: 600; }
+.cv-attr { color: #9a6700; }
+.cv-value { color: #1d4ed8; }
+.cv-comment { color: var(--sprout-text-muted); font-style: italic; }
+.cv-punct { color: var(--sprout-text-muted); }
+
+/* Copy button icon swap — same pattern as the Preview eye/eye-off toggle above. */
+.copy-icon--check { display: none; }
+#codeViewCopyBtn.is-copied .copy-icon--copy { display: none; }
+#codeViewCopyBtn.is-copied .copy-icon--check { display: block; }
+#codeViewCopyBtn.is-copied {
+  background: #eaf7ec;
+  border-color: var(--sprout-green);
+  color: var(--sprout-green-dark);
+}
+
 /* ---------- Toasts ---------- */
 
 .sprout-toast-container {

@@ -57,6 +57,7 @@ sprout-editor/
 │   ├── sidebar.js                   # left-panel element categories
 │   ├── layers.js                    # left-panel DOM tree, synced with canvas selection
 │   ├── insert-menu.js               # the "+" element-type picker, shared by canvas & layers
+│   ├── code-highlight.js            # dependency-free HTML syntax highlighter for Code View
 │   └── history.js                   # undo/redo command stack
 ├── services/
 │   ├── github-api.js                # Contents API: get/update file
@@ -129,6 +130,8 @@ site, not part of the loadable extension itself.)
      a row's own **+** in the Layers panel — to add a new element (see "Adding
      elements" below)
    - **Ctrl/Cmd+Z** / **Ctrl/Cmd+Shift+Z** to undo/redo
+   - **Code** in the toolbar shows the actual HTML that would be saved right now,
+     unsaved changes included — read-only, with a **Copy** button
    - **Save to GitHub** → confirm the commit message → **Save Changes**
 
 ## Editable elements
