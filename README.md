@@ -161,6 +161,10 @@ Heading, Button/Link, Image, or an empty Container):
 - **Layers panel**: every row with a uid (i.e. anything Inspector can show controls for)
   gets its own **+** on hover. On a container row it means "add inside me" (appended as
   the last child); on anything else it means "add a new sibling right after me."
+- **An empty container** (nothing in it yet) shows a persistent "Empty container / +
+  Add element" placeholder directly inside it in canvas — this is the one case where
+  canvas's hover buttons can't reach (there's nothing else in there to hover), so it's
+  shown unconditionally rather than only on hover, unlike everything else in this list.
 
 Whatever you pick is immediately selected with a sensible placeholder (a new paragraph
 starts in-place editable so you can just start typing over "New paragraph text."), and

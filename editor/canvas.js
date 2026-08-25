@@ -8,7 +8,7 @@
 // EditorState, history, or the inspector.
 
 import { getEditableKind, documentUsesSproutMode } from '../services/html-utils.js';
-import { SPROUT_UID_ATTR, SPROUT_ATTR, SPROUT_KINDS, EDITOR_ONLY_STYLE_ID } from '../shared/constants.js';
+import { SPROUT_UID_ATTR, SPROUT_ATTR, SPROUT_KINDS, EDITOR_ONLY_STYLE_ID, EMPTY_CONTAINER_HINT_CLASS } from '../shared/constants.js';
 
 export class Canvas {
   /**
@@ -54,6 +54,7 @@ export class Canvas {
         this.useSproutMode = documentUsesSproutMode(this.doc);
         this._injectEditorStyles();
         this._wireInteractions();
+        this._syncEmptyContainerPlaceholders();
         const hiddenPreloaderCount = this._autoHidePreloaders();
         const revealedSlideCount = this._revealHiddenSlides();
         resolve({ hiddenPreloaderCount, revealedSlideCount });
@@ -192,6 +193,38 @@ export class Canvas {
       .sprout-insert-btn.is-visible { opacity: 1; pointer-events: auto; transform: scale(1); }
       .sprout-insert-btn:hover { filter: brightness(1.08); }
       html.sprout-preview-mode .sprout-insert-btn { display: none !important; }
+      .${EMPTY_CONTAINER_HINT_CLASS} {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 72px;
+        padding: 16px;
+        border: 2px dashed #b6bcc4;
+        border-radius: 8px;
+        background: rgba(46, 160, 67, 0.05);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #5b6472;
+        font-size: 12px;
+      }
+      .${EMPTY_CONTAINER_HINT_CLASS}__add {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        border: 1px solid #2ea043;
+        border-radius: 7px;
+        background: #fff;
+        color: #1a7431;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+      .${EMPTY_CONTAINER_HINT_CLASS}__add:hover { background: #2ea043; color: #fff; }
+      .${EMPTY_CONTAINER_HINT_CLASS}__add:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.32); }
+      html.sprout-preview-mode .${EMPTY_CONTAINER_HINT_CLASS} { display: none !important; }
     `;
     this.doc.head.appendChild(style);
   }
@@ -353,6 +386,11 @@ export class Canvas {
     else anchor.appendChild(el); // 'append' (default) — anchor is expected to be a container
 
     if (kind !== SPROUT_KINDS.CONTAINER) this._wireOne(el);
+    // Two cases this needs to catch: the anchor container just went from
+    // empty to non-empty (its hint needs to come out), or `el` ITSELF is a
+    // brand-new empty container (kind === CONTAINER) that needs its own
+    // hint put in. Re-syncing covers both without special-casing either.
+    this._syncEmptyContainerPlaceholders();
 
     return el;
   }
@@ -361,6 +399,72 @@ export class Canvas {
   removeElement(uid) {
     this._hideInsertButtons();
     this.getElementByUid(uid)?.remove();
+    // Undoing the only element that had been added into a container can
+    // leave it empty again — restore its hint if so.
+    this._syncEmptyContainerPlaceholders();
+  }
+
+  // ---------- Empty-container placeholder ----------
+  //
+  // A container with nothing in it has nothing to hover in canvas — the
+  // hover + buttons above only ever attach to non-container elements
+  // (_wireOne is never called for a CONTAINER kind). Without this, the
+  // ONLY way to add anything into a genuinely empty container is the
+  // Layers panel's own + button, which isn't discoverable from canvas at
+  // all. This puts a persistent (not hover-gated — there's nothing else
+  // to hover) placeholder inside every empty container instead.
+
+  /**
+   * Adds the placeholder to every empty CONTAINER-kind element that
+   * doesn't already have one, and removes it from any that now have real
+   * content. Called after load and after every insert/remove — cheap
+   * enough to just re-scan rather than track incrementally, same as
+   * layers.rebuild() already does for the Layers tree.
+   */
+  _syncEmptyContainerPlaceholders() {
+    if (!this.doc) return;
+    this.doc.querySelectorAll(`[${SPROUT_UID_ATTR}]`).forEach((el) => {
+      if (getEditableKind(el, this.useSproutMode) !== SPROUT_KINDS.CONTAINER) return;
+
+      const existingHint = el.querySelector(`:scope > .${EMPTY_CONTAINER_HINT_CLASS}`);
+      const hasRealChildren = [...el.children].some((child) => child !== existingHint);
+
+      if (hasRealChildren) {
+        existingHint?.remove();
+      } else if (!existingHint) {
+        el.appendChild(this._createEmptyContainerHint(el));
+      }
+    });
+  }
+
+  _createEmptyContainerHint(containerEl) {
+    const hint = this.doc.createElement('div');
+    hint.className = EMPTY_CONTAINER_HINT_CLASS;
+
+    const label = this.doc.createElement('span');
+    label.textContent = 'Empty container';
+    hint.appendChild(label);
+
+    const addBtn = this.doc.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = `${EMPTY_CONTAINER_HINT_CLASS}__add`;
+    addBtn.textContent = '+ Add element';
+    addBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation(); // don't also trigger the doc-level "click anywhere deselects" handler
+      const anchorUid = containerEl.getAttribute(SPROUT_UID_ATTR);
+      if (!anchorUid) return;
+      const iframeRect = this.iframe.getBoundingClientRect();
+      this.onInsertRequest?.({
+        anchorUid,
+        position: 'append',
+        clientX: iframeRect.left + event.clientX,
+        clientY: iframeRect.top + event.clientY,
+      });
+    });
+    hint.appendChild(addBtn);
+
+    return hint;
   }
 
   select(uid) {

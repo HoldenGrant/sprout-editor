@@ -15,7 +15,7 @@
 // detection or data-sprout marks as editable — uid keeps its narrower
 // meaning ("this element has Inspector controls") unchanged.
 
-import { SPROUT_UID_ATTR, CONTAINER_TAGS } from '../shared/constants.js';
+import { SPROUT_UID_ATTR, CONTAINER_TAGS, EMPTY_CONTAINER_HINT_CLASS } from '../shared/constants.js';
 
 export const LAYER_ID_ATTR = 'data-sprout-layer-id';
 
@@ -73,6 +73,11 @@ export class Layers {
     for (const el of parentEl.children) {
       if (SKIP_TAGS.has(el.tagName)) continue;
       if (el.id === 'sprout-editor-injected-styles') continue;
+      // canvas.js's empty-container placeholder — real DOM, but editor
+      // chrome, not page content; never saved either way (see its own
+      // comment in shared/constants.js), but would otherwise show up here
+      // as a fake "div" + "button" pair of rows.
+      if (el.classList.contains(EMPTY_CONTAINER_HINT_CLASS)) continue;
 
       const layerId = assignId(el);
       // SVGs are shown as a single leaf — their internal path/circle/etc

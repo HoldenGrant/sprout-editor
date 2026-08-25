@@ -63,6 +63,20 @@ change landed in this repo.
   mistype) copies it via `navigator.clipboard.writeText`, swapping to a checkmark icon
   and "Copied!" for 1.6s, or a "Copy failed — select the code manually" label if the
   clipboard write is rejected rather than silently pretending it worked.
+- **Empty-container placeholder in canvas.** A container with nothing in it had no
+  visual affordance at all in canvas — canvas's hover + buttons only ever attach to
+  non-container elements, so an empty container had nothing to hover, and the only way
+  in was the Layers panel's own + (not discoverable without already knowing it's there).
+  `canvas.js` `_syncEmptyContainerPlaceholders()` now puts a persistent "Empty
+  container / + Add element" placeholder directly inside every empty CONTAINER-kind
+  element — shown unconditionally, not hover-gated, since there's nothing else to hover.
+  Re-synced after load and after every insert/remove, so it disappears the instant real
+  content lands inside (or reappears if that content is undone). The placeholder itself
+  is real DOM (needed so its own + button can trigger an insert), so it's explicitly
+  skipped in `layers.js`'s tree walk (`EMPTY_CONTAINER_HINT_CLASS`) — it was never at
+  risk of being saved either way, since the save pipeline never reads the live canvas
+  DOM at all. Verified the sync logic (create/remove/idempotency/restore-on-undo/nested
+  containers) against a standalone simulation.
 
 ### Fixed
 - **Button/Link alignment did nothing, visually, no matter what you clicked.** Shipped

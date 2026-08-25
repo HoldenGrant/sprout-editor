@@ -117,7 +117,12 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   canvas's hover + buttons only ever appear on non-container elements (`_wireOne` is
   never called for a CONTAINER-kind element, insertable ones included) — a container you
   just inserted from canvas still only gets a Layers-panel + afterward, same as any
-  other container.
+  other container. One deliberate, narrow exception (2026-08-25): an *empty* container
+  gets a persistent "+ Add element" placeholder injected inside it — not the container
+  itself becoming clickable, a separate injected child element with its own click
+  handler (see `canvas.js` `_createEmptyContainerHint`). It exists only because there'd
+  otherwise be zero way to discover Layers is the only path in for a container with
+  nothing else in it to hover.
 - **`data-sprout-uid` and `data-sprout-layer-id` are intentionally two different
   numbering schemes**, not one reused for both purposes — see the note at the top of
   `editor/layers.js`. Collapsing them would either flood the editable-uid system with

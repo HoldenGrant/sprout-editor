@@ -104,6 +104,13 @@ export function originalValueAttr(attrName) {
 export const EDITOR_ONLY_STYLE_ID = 'sprout-editor-injected-styles';
 export const EDITOR_HOVER_CLASS = 'sprout-hover-outline';
 export const EDITOR_SELECTED_CLASS = 'sprout-selected-outline';
+// Persistent "Empty container / + Add element" placeholder canvas.js injects
+// as a CHILD of any empty CONTAINER-kind element — the only way to add
+// content into a container with nothing else in it to hover over. Never
+// saved (the save pipeline never reads the live canvas DOM at all — see
+// html-utils.js), but layers.js still needs to know to skip it so it
+// doesn't show up as a fake row in the Layers tree.
+export const EMPTY_CONTAINER_HINT_CLASS = 'sprout-empty-container-hint';
 
 // Default commit message used when the user doesn't customize it.
 export function defaultCommitMessage(fileName) {
