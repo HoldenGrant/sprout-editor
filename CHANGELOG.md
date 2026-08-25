@@ -30,6 +30,18 @@ change landed in this repo.
 
   No delete yet — undoing right after inserting is the only way back for now (see
   README's "Known v1 limitations").
+- **Alignment control for Button/Link.** The Text panel already had left/center/right;
+  Button/Link's Inspector panel didn't. Deliberately a different mechanism than text's
+  single `text-align` — `<a>`/`<button>` are inline(-block) elements, so their *own*
+  text-align has no effect on where *they* sit, only margin (with a shrink-to-fit
+  `display`) actually moves the element. That's three CSS properties (`display`,
+  `margin-left`, `margin-right`) that need to change together, reported through a new
+  `Inspector.onAlignmentChange` callback and a new `'multiStyle'`-typed history command
+  (`editor.js` `handleAlignmentChange`) rather than three separate style-field commands —
+  otherwise a single undo would only revert one of the three properties at a time.
+  Verified the left/center/right cycle (including the center→right transition, which has
+  to explicitly clear a stale `margin-right: auto` left over from center) and undo/redo
+  against a standalone simulation.
 
 ### Fixed
 - **Every style-panel edit silently failed to save on its first change to a given field.**

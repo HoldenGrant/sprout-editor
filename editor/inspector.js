@@ -18,13 +18,15 @@ export class Inspector {
    *   onTextChange: (uid: string, value: string) => void,
    *   onAttrChange: (uid: string, name: string, value: string) => void,
    *   onStyleChange: (uid: string, prop: string, value: string) => void,
+   *   onAlignmentChange: (uid: string, styles: Record<string,string>) => void,
    * }} handlers
    */
-  constructor(container, { onTextChange, onAttrChange, onStyleChange }) {
+  constructor(container, { onTextChange, onAttrChange, onStyleChange, onAlignmentChange }) {
     this.container = container;
     this.onTextChange = onTextChange;
     this.onAttrChange = onAttrChange;
     this.onStyleChange = onStyleChange;
+    this.onAlignmentChange = onAlignmentChange;
   }
 
   clear() {
@@ -107,6 +109,12 @@ export class Inspector {
     this.container.appendChild(
       this._rangeField('Border radius', 'px', 0, 48, this._currentPx(el, 'borderRadius'), (value) => {
         this._applyStyle(uid, 'border-radius', `${value}px`);
+      })
+    );
+
+    this.container.appendChild(
+      this._alignmentField(this._currentButtonAlignment(el), (value) => {
+        this._applyAlignment(uid, value);
       })
     );
   }
@@ -206,6 +214,29 @@ export class Inspector {
    */
   _applyStyle(uid, prop, value) {
     this.onStyleChange(uid, prop, value);
+  }
+
+  /**
+   * Button/link alignment, unlike text alignment, can't be a single
+   * `text-align` property — `<a>`/`<button>` are inline(-block) elements,
+   * so their *own* text-align has no effect on where THEY sit; only margin
+   * (with a shrink-to-fit display) moves the element itself. That's three
+   * real CSS properties that have to change together (display, margin-left,
+   * margin-right) — reported as one call via onAlignmentChange rather than
+   * three separate onStyleChange calls specifically so a single undo
+   * reverts the whole alignment change, not one property of it at a time.
+   * Every state sets all three explicitly (not just the ones that "matter"
+   * for that state) so switching straight from center to right, say,
+   * doesn't leave a stale margin-right: auto behind from the prior state.
+   */
+  _applyAlignment(uid, value) {
+    const styles =
+      value === 'center'
+        ? { display: 'inline-block', 'margin-left': 'auto', 'margin-right': 'auto' }
+        : value === 'right'
+          ? { display: 'inline-block', 'margin-left': 'auto', 'margin-right': '' }
+          : { display: '', 'margin-left': '', 'margin-right': '' }; // 'left' — clear all overrides
+    this.onAlignmentChange(uid, styles);
   }
 
   _sectionTitle(text) {
@@ -321,6 +352,17 @@ export class Inspector {
     const inline = el.style[camelCaseProp];
     const raw = inline || getComputedStyle(el)[camelCaseProp] || '#000000';
     return rgbToHex(raw) || '#000000';
+  }
+
+  /**
+   * INLINE-only (never computed — a browser resolves 'auto' to a real px
+   * number in computed style, so it can't tell us it WAS auto) read of
+   * which alignment state _applyAlignment last put this element in.
+   */
+  _currentButtonAlignment(el) {
+    if (el.style.marginLeft === 'auto' && el.style.marginRight === 'auto') return 'center';
+    if (el.style.marginLeft === 'auto') return 'right';
+    return 'left';
   }
 }
 

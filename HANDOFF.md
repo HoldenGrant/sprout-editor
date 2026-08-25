@@ -130,6 +130,15 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   uid uniformly whether it's original or freshly inserted. Don't fold insertion into the
   edits map to "simplify" it — the replay order (structure before content) is load
   bearing, same category of thing as save always re-parsing the pristine original HTML.
+- **History commands have a `type` — `'field'`, `'insert'`, or `'multiStyle'` — and a
+  multi-property change (Button/Link alignment is the first: `display` + `margin-left` +
+  `margin-right` together) must go through `'multiStyle'`, not three separate
+  `'field'` pushes.** Three separate commands would make a single undo only revert one
+  property, leaving the element in a broken in-between visual state — e.g. undoing just
+  `margin-right` back out of a centered button leaves `margin-left: auto` alone,
+  producing right-alignment nobody asked for. If a future field needs more than one CSS
+  property to move together atomically, extend `handleAlignmentChange`'s pattern rather
+  than firing multiple `onStyleChange` calls for it.
 
 ## Reference material
 

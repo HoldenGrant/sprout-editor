@@ -85,6 +85,7 @@ async function init() {
     onTextChange: handleInspectorTextChange,
     onAttrChange: handleAttrChange,
     onStyleChange: handleStyleChange,
+    onAlignmentChange: handleAlignmentChange,
   });
   layers = new Layers(els.layersTree, { onSelect: handleLayerSelect, onInsertRequest: handleInsertRequest });
 
@@ -388,14 +389,45 @@ function commitFieldChange(uid, category, field, before, after) {
   refreshToolbarButtons();
 }
 
+/**
+ * Button/link alignment (Inspector's onAlignmentChange) — several CSS
+ * properties (display, margin-left, margin-right) that need to move
+ * together as one atomic change, so a single undo reverts all of them at
+ * once rather than one property at a time. See inspector.js's
+ * _applyAlignment for why alignment needs more than one property here,
+ * unlike text's single text-align.
+ */
+function handleAlignmentChange(uid, styles) {
+  const before = {};
+  for (const prop of Object.keys(styles)) {
+    before[prop] = getFieldBaseline(uid, 'style', prop);
+  }
+  if (JSON.stringify(before) === JSON.stringify(styles)) return; // already in this state, nothing changed
+
+  for (const [prop, value] of Object.entries(styles)) {
+    applyFieldToCanvasAndState(uid, 'style', prop, value);
+  }
+  historyStack.push({ type: 'multiStyle', uid, before, after: styles });
+  markDirty();
+  refreshToolbarButtons();
+}
+
 function handleHistoryApply(command, direction) {
   if (command.type === 'insert') {
     applyInsertCommand(command, direction);
     return;
   }
 
-  const value = direction === 'undo' ? command.before : command.after;
-  applyFieldToCanvasAndState(command.uid, command.category, command.field, value);
+  if (command.type === 'multiStyle') {
+    const values = direction === 'undo' ? command.before : command.after;
+    for (const [prop, value] of Object.entries(values)) {
+      applyFieldToCanvasAndState(command.uid, 'style', prop, value);
+    }
+  } else {
+    // 'field' — a single text/attr/style change.
+    const value = direction === 'undo' ? command.before : command.after;
+    applyFieldToCanvasAndState(command.uid, command.category, command.field, value);
+  }
 
   // Keep the inspector panel in sync if the affected element is selected.
   if (state.selected?.uid === command.uid) {
