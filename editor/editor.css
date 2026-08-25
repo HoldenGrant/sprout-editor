@@ -569,12 +569,16 @@ textarea:focus-visible,
   gap: 8px;
 }
 
-.sprout-align-group {
+/* Shared by Alignment (3 options) and Container "Columns" (6 options) —
+ * any Inspector field that's really a single-select over a short, fixed
+ * option list. Options can outgrow a name like "align" (Columns does), so
+ * this is deliberately the generic name, not alignment-specific. */
+.sprout-button-group {
   display: flex;
   gap: 4px;
 }
 
-.sprout-align-group button {
+.sprout-button-group button {
   flex: 1;
   padding: 6px 0;
   font-size: 12px;
@@ -585,15 +589,20 @@ textarea:focus-visible,
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.sprout-align-group button:hover:not(.is-active) {
+.sprout-button-group button:hover:not(.is-active) {
   border-color: #c7ced8;
   background: var(--sprout-bg);
 }
 
-.sprout-align-group button.is-active {
+.sprout-button-group button.is-active {
   background: var(--sprout-green);
   color: #fff;
   border-color: var(--sprout-green-dark);
+}
+
+.sprout-button-group button:focus-visible {
+  outline: none;
+  box-shadow: var(--sprout-focus-ring);
 }
 
 .sprout-inspector-section-title {

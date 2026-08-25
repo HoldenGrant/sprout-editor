@@ -130,15 +130,26 @@ See `CHANGELOG.md` for the full list with technical detail on each.
   uid uniformly whether it's original or freshly inserted. Don't fold insertion into the
   edits map to "simplify" it — the replay order (structure before content) is load
   bearing, same category of thing as save always re-parsing the pristine original HTML.
-- **History commands have a `type` — `'field'`, `'insert'`, or `'multiStyle'` — and a
-  multi-property change (Button/Link alignment is the first: `display` + `margin-left` +
-  `margin-right` together) must go through `'multiStyle'`, not three separate
-  `'field'` pushes.** Three separate commands would make a single undo only revert one
-  property, leaving the element in a broken in-between visual state — e.g. undoing just
-  `margin-right` back out of a centered button leaves `margin-left: auto` alone,
-  producing right-alignment nobody asked for. If a future field needs more than one CSS
-  property to move together atomically, extend `handleAlignmentChange`'s pattern rather
-  than firing multiple `onStyleChange` calls for it.
+- **History commands have a `type` — `'field'`, `'insert'`, or `'multiStyle'` — and any
+  multi-property change (Button/Link Alignment: `display` + `margin-left` +
+  `margin-right`; Container Columns: `display` + `grid-template-columns` + `gap`) must
+  go through `'multiStyle'`, not several separate `'field'` pushes.** Several separate
+  commands would make a single undo only revert one property, leaving the element in a
+  broken in-between visual state — e.g. undoing just `margin-right` back out of a
+  centered button leaves `margin-left: auto` alone, producing right-alignment nobody
+  asked for. If a future field needs more than one CSS property to move together
+  atomically, route it through `Inspector.onMultiStyleChange` /
+  `editor.js`'s `handleMultiStyleChange` rather than firing multiple `onStyleChange`
+  calls for it — that's exactly how Columns reused Alignment's mechanism rather than
+  reinventing it.
+- **`display: inline-block` does NOT let `margin: auto` center anything — this bit the
+  first version of Button/Link Alignment for real (shipped, then had to be fixed the
+  same day).** Per CSS2.1 §10.3.9, auto margins on an inline-block box always resolve to
+  0; only a block-level box's auto margins actually center/right-align it.
+  `display: table` is the fix — block-level for margin purposes, but still shrinks to
+  its content width instead of stretching full-width like plain `display: block` would.
+  Worth remembering for *any* future "move this element via margin" field, not just
+  alignment.
 
 ## Reference material
 

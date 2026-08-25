@@ -85,7 +85,7 @@ async function init() {
     onTextChange: handleInspectorTextChange,
     onAttrChange: handleAttrChange,
     onStyleChange: handleStyleChange,
-    onAlignmentChange: handleAlignmentChange,
+    onMultiStyleChange: handleMultiStyleChange,
   });
   layers = new Layers(els.layersTree, { onSelect: handleLayerSelect, onInsertRequest: handleInsertRequest });
 
@@ -390,14 +390,15 @@ function commitFieldChange(uid, category, field, before, after) {
 }
 
 /**
- * Button/link alignment (Inspector's onAlignmentChange) — several CSS
- * properties (display, margin-left, margin-right) that need to move
- * together as one atomic change, so a single undo reverts all of them at
- * once rather than one property at a time. See inspector.js's
- * _applyAlignment for why alignment needs more than one property here,
- * unlike text's single text-align.
+ * Any Inspector field where several real CSS properties have to move
+ * together as one atomic change (Button/Link Alignment: display +
+ * margin-left + margin-right; Container Columns: display +
+ * grid-template-columns + gap) — reported as ONE call so a single undo
+ * reverts the whole thing, not one property of it at a time. See
+ * inspector.js's _applyAlignment / _applyColumns for why each of those
+ * needs more than one property, unlike a plain single-prop style edit.
  */
-function handleAlignmentChange(uid, styles) {
+function handleMultiStyleChange(uid, styles) {
   const before = {};
   for (const prop of Object.keys(styles)) {
     before[prop] = getFieldBaseline(uid, 'style', prop);

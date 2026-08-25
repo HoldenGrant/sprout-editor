@@ -36,12 +36,24 @@ change landed in this repo.
   text-align has no effect on where *they* sit, only margin (with a shrink-to-fit
   `display`) actually moves the element. That's three CSS properties (`display`,
   `margin-left`, `margin-right`) that need to change together, reported through a new
-  `Inspector.onAlignmentChange` callback and a new `'multiStyle'`-typed history command
-  (`editor.js` `handleAlignmentChange`) rather than three separate style-field commands —
+  `Inspector.onMultiStyleChange` callback and a new `'multiStyle'`-typed history command
+  (`editor.js` `handleMultiStyleChange`) rather than three separate style-field commands —
   otherwise a single undo would only revert one of the three properties at a time.
   Verified the left/center/right cycle (including the center→right transition, which has
   to explicitly clear a stale `margin-right: auto` left over from center) and undo/redo
-  against a standalone simulation.
+  against a standalone simulation. (Corrected the same day — see "Fixed" below;
+  `display: inline-block` doesn't actually let auto margins center anything.)
+- **Columns control for containers (1–6).** Lays a section/div's direct children out in
+  a CSS grid — `display: grid` + `grid-template-columns: repeat(N, minmax(0, 1fr))` +
+  a `16px` gap, all through the same `onMultiStyleChange` mechanism Button/Link
+  alignment just introduced (now generalized from an alignment-specific callback to a
+  reusable "several properties, one atomic edit" one — see `Inspector._buttonGroupField`,
+  also extracted from what used to be alignment-only markup/CSS). "1" is treated as the
+  default/off state (clears the grid override entirely) rather than an explicit
+  one-track grid, since a grid with one track isn't quite identical to plain block flow
+  (grid items don't margin-collapse the way block children do). A hint appears if the
+  container's layout is already grid-based via the page's own CSS, matching the existing
+  background-image field's same INLINE-only-read reasoning.
 
 ### Fixed
 - **Button/Link alignment did nothing, visually, no matter what you clicked.** Shipped

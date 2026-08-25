@@ -144,7 +144,8 @@ site, not part of the loadable extension itself.)
   for why that distinction matters.
 - **Structural containers** (`div, section, article, header, footer, aside, main, nav,
   ul, ol, figure, table, form`) are editable too — background color, background image,
-  and spacing — but only reachable through the **Layers panel**, never by hovering or
+  spacing, and a 1–6 **Columns** control that lays the container's direct children out
+  in a CSS grid — but only reachable through the **Layers panel**, never by hovering or
   clicking them directly in the canvas. Every `<div>` on a real page becoming
   individually clickable would be exactly the noise the leaf-only rule above is
   designed to avoid; the Layers panel is the deliberate way to reach a specific section

@@ -18,15 +18,19 @@ export class Inspector {
    *   onTextChange: (uid: string, value: string) => void,
    *   onAttrChange: (uid: string, name: string, value: string) => void,
    *   onStyleChange: (uid: string, prop: string, value: string) => void,
-   *   onAlignmentChange: (uid: string, styles: Record<string,string>) => void,
+   *   onMultiStyleChange: (uid: string, styles: Record<string,string>) => void,
    * }} handlers
    */
-  constructor(container, { onTextChange, onAttrChange, onStyleChange, onAlignmentChange }) {
+  constructor(container, { onTextChange, onAttrChange, onStyleChange, onMultiStyleChange }) {
     this.container = container;
     this.onTextChange = onTextChange;
     this.onAttrChange = onAttrChange;
     this.onStyleChange = onStyleChange;
-    this.onAlignmentChange = onAlignmentChange;
+    // For fields where several real CSS properties have to change together
+    // as one atomic edit (Button/Link Alignment, Container Columns) — see
+    // _applyAlignment/_applyColumns. Distinct from onStyleChange, which is
+    // always exactly one property.
+    this.onMultiStyleChange = onMultiStyleChange;
   }
 
   clear() {
@@ -179,6 +183,25 @@ export class Inspector {
       cssHint.textContent = 'This section already has a background image set by the page\'s CSS — type a URL above to override it.';
       this.container.appendChild(cssHint);
     }
+
+    this.container.appendChild(
+      this._buttonGroupField(
+        'Columns',
+        [1, 2, 3, 4, 5, 6].map((n) => [n, String(n)]),
+        this._currentColumnCount(el),
+        (value) => this._applyColumns(uid, value)
+      )
+    );
+    // Same INLINE-only reasoning as the background-image hint above — a
+    // container the page's own CSS already lays out as a grid (any shape,
+    // not just N equal columns) would otherwise silently show "1" here with
+    // no explanation for why the section clearly isn't stacked vertically.
+    if (!/^repeat\(/.test(el.style.gridTemplateColumns || '') && getComputedStyle(el).display === 'grid') {
+      const gridHint = document.createElement('p');
+      gridHint.className = 'sprout-inspector__empty';
+      gridHint.textContent = "This section's layout is already grid-based via the page's CSS — picking a column count above will override it.";
+      this.container.appendChild(gridHint);
+    }
   }
 
   _renderSpacingSection(uid, el) {
@@ -222,7 +245,7 @@ export class Inspector {
    * so their *own* text-align has no effect on where THEY sit; only margin
    * (with a shrink-to-fit display) moves the element itself. That's three
    * real CSS properties that have to change together (display, margin-left,
-   * margin-right) — reported as one call via onAlignmentChange rather than
+   * margin-right) — reported as one call via onMultiStyleChange rather than
    * three separate onStyleChange calls specifically so a single undo
    * reverts the whole alignment change, not one property of it at a time.
    * Every state sets all three explicitly (not just the ones that "matter"
@@ -248,7 +271,27 @@ export class Inspector {
         : value === 'right'
           ? { display: 'table', 'margin-left': 'auto', 'margin-right': '' }
           : { display: '', 'margin-left': '', 'margin-right': '' }; // 'left' — clear all overrides
-    this.onAlignmentChange(uid, styles);
+    this.onMultiStyleChange(uid, styles);
+  }
+
+  /**
+   * Container "Columns" (1–6): lays out the container's direct children in
+   * a CSS grid. Two properties have to change together (display,
+   * grid-template-columns), same reasoning as _applyAlignment above — one
+   * atomic onMultiStyleChange call, not two, so a single undo reverts both.
+   * "1" is treated as the default/off state (clears the override, reverts
+   * to whatever the container's own layout normally is) rather than an
+   * explicit 1-column grid — a grid with one track isn't quite identical to
+   * plain block flow (grid items don't margin-collapse the way block
+   * children do), and "1 column" should feel like "no column layout," not
+   * "a grid, but just one lane of it."
+   */
+  _applyColumns(uid, count) {
+    const styles =
+      count === 1
+        ? { display: '', 'grid-template-columns': '', gap: '' }
+        : { display: 'grid', 'grid-template-columns': `repeat(${count}, minmax(0, 1fr))`, gap: '16px' };
+    this.onMultiStyleChange(uid, styles);
   }
 
   _sectionTitle(text) {
@@ -326,14 +369,19 @@ export class Inspector {
   }
 
   _alignmentField(currentValue, onChange) {
+    return this._buttonGroupField('Alignment', [['left', 'Left'], ['center', 'Center'], ['right', 'Right']], currentValue, onChange);
+  }
+
+  /** A row of equal-width single-select buttons — Alignment (3 options) and Container "Columns" (6) both use this. */
+  _buttonGroupField(label, options, currentValue, onChange) {
     const wrap = document.createElement('div');
     wrap.className = 'sprout-field';
-    const label = document.createElement('label');
-    label.textContent = 'Alignment';
+    const labelEl = document.createElement('label');
+    labelEl.textContent = label;
     const group = document.createElement('div');
-    group.className = 'sprout-align-group';
+    group.className = 'sprout-button-group';
 
-    [['left', 'Left'], ['center', 'Center'], ['right', 'Right']].forEach(([value, text]) => {
+    options.forEach(([value, text]) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.textContent = text;
@@ -346,7 +394,7 @@ export class Inspector {
       group.appendChild(btn);
     });
 
-    wrap.appendChild(label);
+    wrap.appendChild(labelEl);
     wrap.appendChild(group);
     return wrap;
   }
@@ -375,6 +423,13 @@ export class Inspector {
     if (el.style.marginLeft === 'auto' && el.style.marginRight === 'auto') return 'center';
     if (el.style.marginLeft === 'auto') return 'right';
     return 'left';
+  }
+
+  /** INLINE-only read (same reasoning as _currentButtonAlignment) of the column count _applyColumns last set, or 1 if none. */
+  _currentColumnCount(el) {
+    const match = /^repeat\((\d+),/.exec(el.style.gridTemplateColumns || '');
+    const n = match ? Number(match[1]) : 1;
+    return n >= 1 && n <= 6 ? n : 1;
   }
 }
 
