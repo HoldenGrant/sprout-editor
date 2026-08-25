@@ -7,7 +7,7 @@
 // "two DOM representations" note in services/html-utils.js for why `edits`
 // is authoritative for saving rather than the live preview DOM.
 
-import { STORAGE_KEYS, defaultCommitMessage, originalValueAttr, SPROUT_UID_ATTR, SPROUT_KINDS, INSERTED_UID_PREFIX } from '../shared/constants.js';
+import { STORAGE_KEYS, defaultCommitMessage, originalValueAttr, SPROUT_UID_ATTR, SPROUT_KINDS, INSERTED_UID_PREFIX, EMPTY_CONTAINER_HINT_CLASS } from '../shared/constants.js';
 import { loadGithubHtmlFile, buildPreviewFromHtml } from '../services/file-loader.js';
 import { getEditableKind, serializeForSave } from '../services/html-utils.js';
 import { updateFile, utf8ToBase64, listHtmlFiles, GitHubConflictError, GitHubAuthError } from '../services/github-api.js';
@@ -86,6 +86,7 @@ async function init() {
     onAttrChange: handleAttrChange,
     onStyleChange: handleStyleChange,
     onMultiStyleChange: handleMultiStyleChange,
+    onColumnsChange: handleColumnsChange,
   });
   layers = new Layers(els.layersTree, { onSelect: handleLayerSelect, onInsertRequest: handleInsertRequest });
 
@@ -286,15 +287,21 @@ function handleInsertRequest({ anchorUid, position, clientX, clientY }) {
   });
 }
 
-/** Creates a new element (from the INSERT_PALETTE item picked), records it, and selects it. */
-function performInsert(anchorUid, position, item) {
+/**
+ * Creates a new element from an INSERT_PALETTE-shaped item and records it —
+ * shared core for both performInsert (the normal, user-driven "+" flow,
+ * which also selects the result) and handleColumnsChange's bulk column
+ * creation (which deliberately does NOT — see its own comment for why).
+ * Returns the new uid, or null if the anchor no longer exists.
+ */
+function insertElementCore(anchorUid, position, item) {
   const uid = `${INSERTED_UID_PREFIX}${state.nextInsertUid++}`;
   const insertion = { uid, anchorUid, position, tag: item.tag, kind: item.kind };
 
   const el = canvas.insertElement(insertion);
   if (!el) {
     showToast('Could not add that element — its anchor is no longer on the page.', 'error');
-    return;
+    return null;
   }
   state.insertions.push(insertion);
 
@@ -317,9 +324,15 @@ function performInsert(anchorUid, position, item) {
   });
 
   layers.rebuild(canvas.doc);
-  selectInsertedElement(uid, item.kind);
   markDirty();
   refreshToolbarButtons();
+  return uid;
+}
+
+/** The normal "+" flow: create the element, then select it. */
+function performInsert(anchorUid, position, item) {
+  const uid = insertElementCore(anchorUid, position, item);
+  if (uid) selectInsertedElement(uid, item.kind);
 }
 
 /** Containers aren't canvas-selectable (see canvas.js) — mirrors handleLayerSelect's same split. */
@@ -411,6 +424,60 @@ function handleMultiStyleChange(uid, styles) {
   historyStack.push({ type: 'multiStyle', uid, before, after: styles });
   markDirty();
   refreshToolbarButtons();
+}
+
+/**
+ * Container "Columns" — creates N actual empty column boxes (each its own
+ * container, so it automatically gets its own "+ Add element" placeholder —
+ * see canvas.js _syncEmptyContainerPlaceholders), not just a grid style
+ * with nothing distinguishable to add content into. Reuses performInsert
+ * for each new column box, so they're real insertions: their own uid,
+ * their own undo step, saved correctly.
+ *
+ * Never removes an existing column box, even when picking a smaller count —
+ * v1 has no delete at all (see README's "Known v1 limitations"), and a
+ * column the user already put content into is exactly the kind of thing
+ * that must never silently disappear. Picking a smaller count than what's
+ * already there just re-lays-out the existing boxes into that many per row
+ * (they wrap) and says so, rather than pretending to shrink.
+ */
+function handleColumnsChange(uid, count) {
+  const containerEl = canvas.getElementByUid(uid);
+  if (!containerEl) return;
+
+  handleMultiStyleChange(
+    uid,
+    count === 1
+      ? { display: '', 'grid-template-columns': '', gap: '' }
+      : { display: 'grid', 'grid-template-columns': `repeat(${count}, minmax(0, 1fr))`, gap: '16px' }
+  );
+
+  if (count <= 1) return; // '1' only ever clears the grid — no column boxes to manage
+
+  const existingColumnCount = [...containerEl.children].filter(
+    (child) => !child.classList.contains(EMPTY_CONTAINER_HINT_CLASS)
+  ).length;
+  const toAdd = count - existingColumnCount;
+
+  if (toAdd <= 0) {
+    if (toAdd < 0) {
+      showToast(
+        `This container already has ${existingColumnCount} column(s) — v1 can't remove columns (any of them could have content in it). Laid out ${count} per row instead.`,
+        'info'
+      );
+    }
+    return;
+  }
+
+  // Deliberately insertElementCore, not performInsert: performInsert also
+  // SELECTS the new element, which starts with canvas.deselect() — on the
+  // very first loop iteration that would deselect the container whose
+  // Inspector panel the user is currently looking at (the one with the
+  // Columns buttons they just clicked), clearing it out from under them.
+  // Bulk column creation shouldn't touch selection at all.
+  for (let i = 0; i < toAdd; i++) {
+    insertElementCore(uid, 'append', { tag: 'div', kind: SPROUT_KINDS.CONTAINER });
+  }
 }
 
 function handleHistoryApply(command, direction) {

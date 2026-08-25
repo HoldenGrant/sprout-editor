@@ -43,17 +43,32 @@ change landed in this repo.
   to explicitly clear a stale `margin-right: auto` left over from center) and undo/redo
   against a standalone simulation. (Corrected the same day — see "Fixed" below;
   `display: inline-block` doesn't actually let auto margins center anything.)
-- **Columns control for containers (1–6).** Lays a section/div's direct children out in
-  a CSS grid — `display: grid` + `grid-template-columns: repeat(N, minmax(0, 1fr))` +
-  a `16px` gap, all through the same `onMultiStyleChange` mechanism Button/Link
-  alignment just introduced (now generalized from an alignment-specific callback to a
-  reusable "several properties, one atomic edit" one — see `Inspector._buttonGroupField`,
-  also extracted from what used to be alignment-only markup/CSS). "1" is treated as the
-  default/off state (clears the grid override entirely) rather than an explicit
-  one-track grid, since a grid with one track isn't quite identical to plain block flow
-  (grid items don't margin-collapse the way block children do). A hint appears if the
-  container's layout is already grid-based via the page's own CSS, matching the existing
-  background-image field's same INLINE-only-read reasoning.
+- **Columns control for containers (1–6).** Picking a count creates that many actual
+  empty column boxes side by side — each one is its own container, so it automatically
+  gets the same "+ Add element" placeholder any other empty container does (see the
+  empty-container entry above), making every column independently addable without
+  leaving canvas. Reuses the exact same insertion machinery as any other "+" (own uid,
+  own undo step, saved correctly) via a new shared `insertElementCore` — the only
+  difference from the normal "+" flow is that bulk column creation deliberately doesn't
+  change selection (`performInsert` does; the loop uses the lower-level core directly),
+  since selecting each new column as it's created would otherwise clear the outer
+  container's own Inspector panel — the one with the Columns buttons just clicked —
+  right out from under the user.
+
+  Picking a *smaller* count than the number of columns already there never removes any
+  of them (v1 has no delete at all, and a column already holding content is exactly the
+  kind of thing that must never silently vanish) — it just re-lays the existing columns
+  into that many per row and says so via a toast, rather than pretending to shrink.
+  Picking a larger count adds only the difference, leaving existing columns (and
+  whatever's already inside them) untouched.
+
+  **This replaced an earlier same-day version** that applied `display: grid` directly to
+  whatever children a container already had, with no way to add anything *into* a
+  specific column — there was no such thing as "column 2" to target, only "the
+  container's children, auto-placed by document order." Reported back almost
+  immediately as "there is no way to put contents on the columns," which was the right
+  call — it wasn't a bug in that version, it solved a different problem than what was
+  actually needed.
 - **The device-flow "Go to https://github.com/login/device" step is now a real link.**
   Was plain text in the connect-status box — had to be copy-pasted or retyped by hand.
   `options.js` `showConnectStatus()` now optionally splits the one occurrence of a given

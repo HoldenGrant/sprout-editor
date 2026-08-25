@@ -19,18 +19,22 @@ export class Inspector {
    *   onAttrChange: (uid: string, name: string, value: string) => void,
    *   onStyleChange: (uid: string, prop: string, value: string) => void,
    *   onMultiStyleChange: (uid: string, styles: Record<string,string>) => void,
+   *   onColumnsChange: (uid: string, count: number) => void,
    * }} handlers
    */
-  constructor(container, { onTextChange, onAttrChange, onStyleChange, onMultiStyleChange }) {
+  constructor(container, { onTextChange, onAttrChange, onStyleChange, onMultiStyleChange, onColumnsChange }) {
     this.container = container;
     this.onTextChange = onTextChange;
     this.onAttrChange = onAttrChange;
     this.onStyleChange = onStyleChange;
     // For fields where several real CSS properties have to change together
-    // as one atomic edit (Button/Link Alignment, Container Columns) — see
-    // _applyAlignment/_applyColumns. Distinct from onStyleChange, which is
-    // always exactly one property.
+    // as one atomic edit (Button/Link Alignment) — see _applyAlignment.
+    // Distinct from onStyleChange, which is always exactly one property.
     this.onMultiStyleChange = onMultiStyleChange;
+    // Columns is more than a style change — it has to create actual column
+    // boxes (not just lay out whatever's already there), which means
+    // inserting elements, which editor.js owns. See _applyColumns.
+    this.onColumnsChange = onColumnsChange;
   }
 
   clear() {
@@ -283,23 +287,17 @@ export class Inspector {
   }
 
   /**
-   * Container "Columns" (1–6): lays out the container's direct children in
-   * a CSS grid. Two properties have to change together (display,
-   * grid-template-columns), same reasoning as _applyAlignment above — one
-   * atomic onMultiStyleChange call, not two, so a single undo reverts both.
-   * "1" is treated as the default/off state (clears the override, reverts
-   * to whatever the container's own layout normally is) rather than an
-   * explicit 1-column grid — a grid with one track isn't quite identical to
-   * plain block flow (grid items don't margin-collapse the way block
-   * children do), and "1 column" should feel like "no column layout," not
-   * "a grid, but just one lane of it."
+   * Container "Columns" (1–6). NOT just a style change — picking N doesn't
+   * mean "lay out whatever's already in here into a grid," it means "give
+   * me N actual column boxes I can add content into," each independently
+   * addressable (each is its own empty container, so it gets the same
+   * "+ Add element" placeholder any other empty container does — see
+   * canvas.js _syncEmptyContainerPlaceholders). That's element creation,
+   * which editor.js owns (state.insertions, undo/redo) — this only reports
+   * the requested count.
    */
   _applyColumns(uid, count) {
-    const styles =
-      count === 1
-        ? { display: '', 'grid-template-columns': '', gap: '' }
-        : { display: 'grid', 'grid-template-columns': `repeat(${count}, minmax(0, 1fr))`, gap: '16px' };
-    this.onMultiStyleChange(uid, styles);
+    this.onColumnsChange(uid, count);
   }
 
   _sectionTitle(text) {
