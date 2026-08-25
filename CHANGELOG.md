@@ -79,6 +79,12 @@ change landed in this repo.
   containers) against a standalone simulation.
 
 ### Fixed
+- **The Container Inspector panel's hint could show an internal editor class as if it
+  were the element's own.** `_renderContainerPanel` picked "the first token in the
+  `class` attribute" to show in `<div class="...">` — for a freshly-inserted container
+  (no real class of its own yet), the only token present after selecting it could
+  literally be `sprout-selected-outline`, leaking straight into the visible hint text.
+  Now filters out any `sprout-`-prefixed token before picking one to display.
 - **Button/Link alignment did nothing, visually, no matter what you clicked.** Shipped
   earlier today using `display: inline-block` with `margin-left`/`margin-right: auto` to
   move the element — except per CSS2.1 §10.3.9, auto margins on an inline-block box

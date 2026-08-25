@@ -153,7 +153,15 @@ export class Inspector {
   _renderContainerPanel(uid, el) {
     this._sectionTitle('Section / Container');
 
-    const firstClass = (el.getAttribute('class') || '').trim().split(/\s+/)[0];
+    // Never show an editor-internal class (sprout-hover-outline,
+    // sprout-selected-outline, ...) as if it were the element's own — a
+    // freshly-inserted container has no real class at all until the user
+    // adds one, so the ONLY token in its class attribute at that point can
+    // genuinely be one of ours.
+    const firstClass = (el.getAttribute('class') || '')
+      .trim()
+      .split(/\s+/)
+      .find((c) => c && !c.startsWith('sprout-'));
     const hint = document.createElement('p');
     hint.className = 'sprout-inspector__empty';
     hint.textContent = `<${el.tagName.toLowerCase()}${firstClass ? ` class="${firstClass}"` : ''}> — reached via the Layers panel. Edit the text/images inside it directly, or set a background below.`;
