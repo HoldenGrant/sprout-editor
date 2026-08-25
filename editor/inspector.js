@@ -230,11 +230,23 @@ export class Inspector {
    * doesn't leave a stale margin-right: auto behind from the prior state.
    */
   _applyAlignment(uid, value) {
+    // display MUST be 'table', not 'inline-block' — per CSS2.1 §10.3.9, auto
+    // margins on an inline-block box compute to 0, not to "fill the
+    // available space." margin: auto only actually centers a BLOCK-level
+    // box. 'table' is the standard shrink-to-fit-but-still-block-for-
+    // margin-purposes trick (unlike plain 'block', which would stretch the
+    // button to the full width of its container instead of hugging its
+    // content). Shipped with 'inline-block' initially, which silently did
+    // nothing at all — the display changed, but the margins always
+    // resolved to 0 regardless of what value was set. Caught by a user
+    // report, not caught by the earlier "does undo/redo replay the right
+    // values" simulation, which only checked the STATE machine, never
+    // asked whether the resulting CSS actually renders as centered.
     const styles =
       value === 'center'
-        ? { display: 'inline-block', 'margin-left': 'auto', 'margin-right': 'auto' }
+        ? { display: 'table', 'margin-left': 'auto', 'margin-right': 'auto' }
         : value === 'right'
-          ? { display: 'inline-block', 'margin-left': 'auto', 'margin-right': '' }
+          ? { display: 'table', 'margin-left': 'auto', 'margin-right': '' }
           : { display: '', 'margin-left': '', 'margin-right': '' }; // 'left' — clear all overrides
     this.onAlignmentChange(uid, styles);
   }

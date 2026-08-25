@@ -44,6 +44,18 @@ change landed in this repo.
   against a standalone simulation.
 
 ### Fixed
+- **Button/Link alignment did nothing, visually, no matter what you clicked.** Shipped
+  earlier today using `display: inline-block` with `margin-left`/`margin-right: auto` to
+  move the element — except per CSS2.1 §10.3.9, auto margins on an inline-block box
+  always resolve to **0**, not to "fill the available space." Only a block-level box's
+  auto margins actually center it. The bug was invisible to the state-machine simulation
+  that verified the earlier version — that check only asked "does `el.style.marginLeft`
+  become the string `'auto'`?" (yes), never "does the box actually move on screen?" (no).
+  Fixed by using `display: table` instead — the standard way to get a block-level box
+  that still shrinks to its content width instead of stretching full-width like plain
+  `display: block` would. Worth knowing: this still only touches the button's *own*
+  style, never its parent's — inside a flex or grid container, the parent's own
+  layout rules (`justify-content`, etc.) may still take precedence over this.
 - **Every style-panel edit silently failed to save on its first change to a given field.**
   Reported as "Alignment doesn't save," but the same bug affected font size, text/button
   colors, border radius, spacing, and container backgrounds — anything driven by
