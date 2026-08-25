@@ -164,11 +164,61 @@ function showConnectStatus(message, type, { code, linkUrl, linkText } = {}) {
 
   els.connectStatus.appendChild(text);
   if (code) {
-    const codeBox = document.createElement('div');
-    codeBox.className = 'device-code';
-    codeBox.textContent = code;
-    els.connectStatus.appendChild(codeBox);
+    els.connectStatus.appendChild(buildDeviceCodeBox(code));
   }
+}
+
+/** The device code box: the code itself, plus a copy-to-clipboard button. */
+function buildDeviceCodeBox(code) {
+  const box = document.createElement('div');
+  box.className = 'device-code';
+
+  const codeText = document.createElement('span');
+  codeText.className = 'device-code__text';
+  codeText.textContent = code;
+  box.appendChild(codeText);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'device-code__copy';
+  copyBtn.setAttribute('aria-label', 'Copy code');
+  copyBtn.title = 'Copy code';
+  // Two icons, one shown at a time via .is-copied (same pattern as
+  // editor.html's preview eye/eye-off swap) — clearer feedback than relying
+  // on the aria-label alone, which a sighted user won't be reading.
+  copyBtn.innerHTML = `
+    <svg class="copy-icon copy-icon--copy" viewBox="0 0 18 18" width="14" height="14" aria-hidden="true">
+      <rect x="6" y="6" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <path d="M4 11V4a1 1 0 0 1 1-1h7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <svg class="copy-icon copy-icon--check" viewBox="0 0 18 18" width="14" height="14" aria-hidden="true">
+      <path d="M4 9.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+  copyBtn.addEventListener('click', () => handleCopyCode(copyBtn, code));
+  box.appendChild(copyBtn);
+
+  return box;
+}
+
+async function handleCopyCode(button, code) {
+  clearTimeout(button._resetTimeout);
+  try {
+    await navigator.clipboard.writeText(code);
+    button.classList.add('is-copied');
+    button.setAttribute('aria-label', 'Copied!');
+    button.title = 'Copied!';
+  } catch {
+    // Clipboard access can be denied — don't pretend it worked.
+    button.setAttribute('aria-label', 'Copy failed — select the code manually');
+    button.title = 'Copy failed — select the code manually';
+    return;
+  }
+  button._resetTimeout = setTimeout(() => {
+    button.classList.remove('is-copied');
+    button.setAttribute('aria-label', 'Copy code');
+    button.title = 'Copy code';
+  }, 1600);
 }
 
 function hideConnectStatus() {

@@ -58,6 +58,11 @@ change landed in this repo.
   Was plain text in the connect-status box — had to be copy-pasted or retyped by hand.
   `options.js` `showConnectStatus()` now optionally splits the one occurrence of a given
   URL out of the message and renders it as an actual `<a target="_blank">` instead.
+- **Copy button on the device code.** A small icon button next to the code (typing an
+  8-character code correctly by hand is exactly the kind of thing that's easy to
+  mistype) copies it via `navigator.clipboard.writeText`, swapping to a checkmark icon
+  and "Copied!" for 1.6s, or a "Copy failed — select the code manually" label if the
+  clipboard write is rejected rather than silently pretending it worked.
 
 ### Fixed
 - **Button/Link alignment did nothing, visually, no matter what you clicked.** Shipped
